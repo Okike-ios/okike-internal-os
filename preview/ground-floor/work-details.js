@@ -2599,11 +2599,22 @@ document.getElementById("confirmActivity")
   });
 
 // ==========================================
-// INITIALISE PAGE
+// ISOLATED DEMO PREVIEW (not linked to live quotation data)
 // ==========================================
-
+if (!localStorage.getItem(STORAGE_KEY)) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    constructionScope: { stages: ["Ground Floor Construction"] },
+    workDetails: { activities: {
+      "Ground floor concrete slab": {
+        details: { measurements: [{ ref: "Sample slab", length: "12", width: "10", depth: "150", count: "1" }] },
+        materials: [], labour: [], logistics: [], otherCosts: [], confirmed: false
+      }
+    } }
+  }));
+}
 renderStages();
-showView(stageView);
+openStage("Ground Floor Construction");
+openActivity("Ground floor concrete slab");
 
 // OK-QNB-003: prototype calculator functions
 function isMixActivity(){return currentActivity==="Ground floor concrete slab";}
