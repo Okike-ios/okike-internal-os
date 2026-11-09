@@ -1,0 +1,55 @@
+/* Shared OKIKE Internal OS navigation based on Home Screen v0.1. */
+body[data-theme="dark"]{--ivory:#101011;--white:#1d1b1b;--charcoal:#F4F1EB;--muted:#B6B2AC;--border:#373331;--sidebar:#26211E;--sidebar-text:#DED6CD;background:#101011;color:#F4F1EB}
+body[data-theme="dark"] .page-container,body[data-theme="dark"] .view-panel{color:#F4F1EB}
+body[data-theme="dark"] input,body[data-theme="dark"] textarea,body[data-theme="dark"] select{background:#262321;color:#F4F1EB;border-color:#514A46}
+body[data-theme="dark"] .wizard-card,body[data-theme="dark"] .review-card,body[data-theme="dark"] .stage-row,body[data-theme="dark"] .activity-row,body[data-theme="dark"] .stage-card,body[data-theme="dark"] .form-card,body[data-theme="dark"] .section-card,body[data-theme="dark"] .topbar{background:#1d1b1b;color:#F4F1EB;border-color:#3A3735}
+body[data-theme="dark"] .page-heading,body[data-theme="dark"] .section-heading,body[data-theme="dark"] .wizard-heading{color:#F4F1EB}
+body[data-theme="dark"] .status-label,body[data-theme="dark"] .draft-badge{color:#F4F1EB}
+.okike-shared-sidebar{width:204px!important;min-width:204px!important;position:fixed!important;inset:0 auto 0 0!important;background:#26211E!important;color:#DED6CD!important;display:flex!important;flex-direction:column!important;z-index:30!important;padding:0!important;transition:width .2s!important;box-shadow:2px 0 6px #00000010!important;overflow:hidden}
+.okike-shared-sidebar .brand-bar{display:flex;align-items:center;justify-content:space-between;padding:23px 13px 24px 24px;min-height:94px;flex-shrink:0}
+.okike-shared-sidebar .brand-copy b{display:block;font-size:27px;letter-spacing:-1px;color:white}
+.okike-shared-sidebar .brand-copy small{display:block;font-size:15px;color:#eee;letter-spacing:0}
+.okike-shared-sidebar .sidebar-toggle{color:#c3b8af;background:transparent;border:0;border-radius:7px;padding:7px;font-size:17px;cursor:pointer}
+.okike-shared-sidebar .sidebar-toggle:hover{background:#44392f}
+.okike-shared-sidebar #okikeSideNav{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:0 5px;scrollbar-width:none}
+.okike-shared-sidebar .nav-entry{margin-bottom:4px}
+.okike-shared-sidebar .nav-main{display:flex;width:100%;align-items:center;gap:13px;background:transparent;color:#e3dcd6;border:0;border-radius:7px;text-align:left;padding:11px 13px;font-size:13px;text-decoration:none;font-weight:400;cursor:pointer}
+.okike-shared-sidebar .nav-main.active{background:#b65a26;color:white}
+.okike-shared-sidebar .nav-main:hover:not(.active){background:#3b312c}
+.okike-shared-sidebar .nav-icon{font-size:19px;width:24px;text-align:center;line-height:1;flex-shrink:0}
+.okike-shared-sidebar .nav-label{flex:1;white-space:nowrap}
+.okike-shared-sidebar .nav-arrow{font-size:12px;color:#c4bcb3;padding:4px}
+.okike-shared-sidebar .nav-sub{padding:1px 0 7px 46px}
+.okike-shared-sidebar .nav-sub a{display:block;text-decoration:none;color:#c5bbb1;padding:7px 5px;font-size:11.5px;line-height:1.25;border-left:2px solid #4a3b33}
+.okike-shared-sidebar .nav-sub a:hover,.okike-shared-sidebar .nav-sub a.selected{color:#fff;border-left-color:#C96A32}
+.okike-shared-sidebar .nav-nested{padding-left:10px}
+.okike-shared-sidebar .nav-caption{font-size:10px;letter-spacing:.6px;color:#d99269;padding:9px 4px 3px}
+.okike-shared-sidebar .sidebar-footer{border-top:1px solid #463a32;margin:8px 13px;padding:11px 0 0}
+.okike-shared-sidebar.minimized{width:70px!important;min-width:70px!important}
+.okike-shared-sidebar.minimized .brand-copy,.okike-shared-sidebar.minimized .nav-label,.okike-shared-sidebar.minimized .nav-arrow,.okike-shared-sidebar.minimized .nav-sub{display:none}
+.okike-shared-sidebar.minimized .brand-bar{justify-content:center;padding:26px 0;min-height:94px}
+.okike-shared-sidebar.minimized .nav-main{justify-content:center;padding:15px 8px}
+.okike-shared-sidebar.minimized .sidebar-footer{margin:8px 8px}
+.okike-shared-sidebar.minimized .nav-icon{width:auto}
+.okike-shared-sidebar ~ .main-content{margin-left:204px!important;width:calc(100% - 204px)!important;min-width:0!important;transition:margin-left .2s,width .2s}
+.okike-shared-sidebar.minimized ~ .main-content{margin-left:70px!important;width:calc(100% - 70px)!important}
+.okike-shared-sidebar~.main-content .topbar{min-height:64px}
+.activity-row[data-activity]{cursor:pointer;transition:border-color .16s,background-color .16s}
+.activity-row[data-activity]:hover{border-color:#C96A32;background:rgba(201,106,50,.035)}
+.activity-row[data-activity]:focus-visible{outline:2px solid #C96A32;outline-offset:2px}
+.activity-siblings{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.activity-siblings button{padding:9px 12px;background:transparent;color:inherit;border:1px solid #DEDCD3;border-radius:7px;cursor:pointer;font-weight:600}
+.activity-siblings button:hover:not(:disabled){border-color:#C96A32;color:#C96A32}
+.activity-siblings button:disabled{opacity:.38;cursor:not-allowed}
+.activity-siblings .activity-place{font-size:12px;color:var(--muted,#85877F)}
+@media(max-width:720px){.okike-shared-sidebar{width:70px!important;min-width:70px!important}.okike-shared-sidebar .brand-copy,.okike-shared-sidebar .nav-label,.okike-shared-sidebar .nav-arrow,.okike-shared-sidebar .nav-sub{display:none}.okike-shared-sidebar .brand-bar{padding:26px 0;justify-content:center}.okike-shared-sidebar .nav-main{justify-content:center;padding:15px 8px}.okike-shared-sidebar~.main-content{margin-left:70px!important;width:calc(100% - 70px)!important}}
+
+/* v0.4: keep a single sidebar navigation, never an inner visible scrollbar. */
+.okike-shared-sidebar #okikeSideNav::-webkit-scrollbar{display:none}
+.okike-shared-sidebar .sidebar-toggle{flex:0 0 auto;position:relative;z-index:2;min-width:30px;min-height:32px}
+.okike-shared-sidebar .nav-sub{padding-left:46px}
+.okike-shared-sidebar.minimized #okikeSideNav .nav-sub{display:none}
+.okike-shared-sidebar.minimized .nav-arrow{display:none}
+.stage-row[data-stage],.activity-row[data-activity]{cursor:pointer;transition:border-color .16s,background-color .16s}
+.stage-row[data-stage]:hover,.activity-row[data-activity]:hover{border-color:#C96A32;background:rgba(201,106,50,.035)}
+.stage-row[data-stage]:focus-visible,.activity-row[data-activity]:focus-visible{outline:2px solid #C96A32;outline-offset:2px}

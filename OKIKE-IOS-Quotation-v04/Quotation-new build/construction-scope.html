@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Construction Scope | OKIKE</title>
+  <link rel="stylesheet" href="construction-scope.css">
+  <link rel="stylesheet" href="../okike-shared.css">
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar okike-shared-sidebar" id="okikeSharedSidebar" aria-label="OKIKE Internal OS navigation"></aside>
+
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+
+      <div class="breadcrumb">
+        <span>Quotations</span>
+        <span class="separator">/</span>
+        <strong>New Build Quotation</strong>
+      </div>
+
+      <div class="topbar-right">
+        <div class="save-status">
+          <span class="status-dot"></span>
+          <span id="saveStatus">Not saved</span>
+        </div>
+
+        <button type="button" class="icon-button" aria-label="More options">
+          ⋯
+        </button>
+      </div>
+
+    </div>
+
+    <div class="page-container">
+
+      <!-- PAGE HEADING -->
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">NEW QUOTATION</span>
+    <h1>Construction Scope</h1>
+    <p>Let's define the work included in this project.</p>
+  </div>
+
+  <span class="draft-badge">• Draft</span>
+</section>
+
+
+<!-- PROGRESS -->
+<section class="progress-section">
+
+  <div class="progress-top">
+    <span>Quotation setup</span>
+    <strong>02 <span>/ 18</span></strong>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill scope-progress"></div>
+  </div>
+
+  <div class="progress-labels">
+    <span class="completed">Project Information</span>
+    <span class="current">Construction Scope</span>
+    <span>Review</span>
+  </div>
+
+</section>
+
+
+      <!-- INTRODUCTION -->
+      <section class="scope-intro">
+        <div>
+          <span class="section-number">01</span>
+          <h2>What work is included?</h2>
+          <p>
+            Every project is different. Select only the stages applicable
+            to this project. You will be able to add, remove and define
+            individual activities within each selected stage.
+          </p>
+        </div>
+
+        <div class="selection-counter">
+          <strong id="selectedCount">0</strong>
+          <span>stages selected</span>
+        </div>
+      </section>
+
+
+      <!-- CONSTRUCTION STAGES -->
+      <form id="scopeForm">
+
+        <div class="stage-grid" id="stageGrid">
+
+          <!-- PRELIMINARIES -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Preliminaries & Site Preparation">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">01</span>
+              <h3>Preliminaries & Site Preparation</h3>
+              <p>Site assessment, mobilisation, clearing and preparation.</p>
+            </div>
+          </label>
+
+          <!-- SUBSTRUCTURE -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Substructure">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">02</span>
+              <h3>Substructure</h3>
+              <p>Excavation, foundation, ground beams and foundation works.</p>
+            </div>
+          </label>
+
+          <!-- GROUND FLOOR -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Ground Floor Construction">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">03</span>
+              <h3>Ground Floor Construction</h3>
+              <p>Filling, compaction, hardcore, blinding and floor slab.</p>
+            </div>
+          </label>
+
+          <!-- SUPERSTRUCTURE -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Superstructure">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">04</span>
+              <h3>Superstructure</h3>
+              <p>Walls, columns, beams and structural elements.</p>
+            </div>
+          </label>
+
+          <!-- UPPER FLOOR -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Upper Floor Construction">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">05</span>
+              <h3>Upper Floor Construction</h3>
+              <p>Suspended slabs, upper floor structure and associated works.</p>
+            </div>
+          </label>
+
+          <!-- ROOFING -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Roofing">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">06</span>
+              <h3>Roofing</h3>
+              <p>Roof structure, covering, waterproofing and rainwater goods.</p>
+            </div>
+          </label>
+
+          <!-- DOORS AND WINDOWS -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Doors & Windows">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">07</span>
+              <h3>Doors & Windows</h3>
+              <p>Frames, shutters, glazing, fittings and installation.</p>
+            </div>
+          </label>
+
+          <!-- ELECTRICAL -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Electrical Installation">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">08</span>
+              <h3>Electrical Installation</h3>
+              <p>Wiring, conduits, fittings, lighting and distribution.</p>
+            </div>
+          </label>
+
+          <!-- PLUMBING -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Plumbing & Drainage">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">09</span>
+              <h3>Plumbing & Drainage</h3>
+              <p>Water supply, pipework, sanitary and drainage systems.</p>
+            </div>
+          </label>
+
+          <!-- PLASTERING -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Plastering & Rendering">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">10</span>
+              <h3>Plastering & Rendering</h3>
+              <p>Internal plastering, external rendering and surface preparation.</p>
+            </div>
+          </label>
+
+          <!-- FLOOR FINISHES -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Floor Finishes">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">11</span>
+              <h3>Floor Finishes</h3>
+              <p>Tiling, screeding, flooring and floor finishing materials.</p>
+            </div>
+          </label>
+
+          <!-- WALL FINISHES -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Wall Finishes">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">12</span>
+              <h3>Wall Finishes</h3>
+              <p>Wall tiles, cladding, decorative finishes and treatments.</p>
+            </div>
+          </label>
+
+          <!-- CEILING -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Ceiling Works">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">13</span>
+              <h3>Ceiling Works</h3>
+              <p>Ceiling framework, boards, finishes and accessories.</p>
+            </div>
+          </label>
+
+          <!-- PAINTING -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Painting & Decoration">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">14</span>
+              <h3>Painting & Decoration</h3>
+              <p>Priming, painting, polishing and decorative treatments.</p>
+            </div>
+          </label>
+
+          <!-- EXTERNAL WORKS -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="External Works">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">15</span>
+              <h3>External Works</h3>
+              <p>Drainage, paving, fencing, landscaping and external structures.</p>
+            </div>
+          </label>
+
+          <!-- FINAL FITTINGS -->
+          <label class="stage-card">
+            <input type="checkbox" name="stages" value="Final Fittings & Installations">
+            <span class="stage-check"></span>
+            <div class="stage-content">
+              <span class="stage-index">16</span>
+              <h3>Final Fittings & Installations</h3>
+              <p>Sanitary fittings, accessories, fixtures and final installations.</p>
+            </div>
+          </label>
+
+        </div>
+
+
+        <!-- NOTES -->
+        <section class="scope-notes">
+          <label for="scopeNotes">
+            Additional scope notes
+            <span>Optional</span>
+          </label>
+
+          <textarea
+            id="scopeNotes"
+            name="scopeNotes"
+            placeholder="Mention any special construction work or project requirements not covered by the stages above..."
+          ></textarea>
+        </section>
+
+
+        <!-- ACTIONS -->
+        <div class="form-actions">
+          <button type="button" class="secondary-button" id="saveDraft">
+            Save Draft
+          </button>
+
+          <button type="submit" class="primary-button">
+            Continue to Work Details →
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </main>
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+<script src="construction-scope.js"></script>
+
+<script src="okike-shared.js"></script>
+</body>
+</html>
