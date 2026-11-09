@@ -160,8 +160,36 @@ const subMeasurements = {
   "Substructure inspections and testing": {unit:"tests", columns:[["tests","Tests / visits","number"],["count","Locations / groups","number"]],calc:r=>num(r.tests)*num(r.count)}
 };
 function num(value){const n=Number(value);return value===""||value==null||!Number.isFinite(n)||n<0?0:n;}
+
+const groundFloorActivities=["Ground floor preparation and level verification","Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement","Ground floor concrete slab","Slab construction joints, edges and finishing","Concrete curing, inspection and testing"];
+const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular material specification"],["method","Laying and compaction method"]],"Sand blinding and surface levelling":[["spec","Sand / blinding specification"],["method","Levelling method"]],"Damp-proof membrane installation":[["spec","Membrane specification"],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification"],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification"],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification"],["finish","Required slab finish"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
+const groundFloorMeasures={"Ground floor preparation and level verification":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Filling and raising of floor levels":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Filling compaction and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Hardcore / granular sub-base installation":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Sand blinding and surface levelling":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Damp-proof membrane installation":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Floor insulation and specialised protective layers":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor reinforcement":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor concrete slab":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Slab construction joints, edges and finishing":{"unit":"m","columns":[["length","Total length (m)","number"],["count","Repeats","number"]],"formula":"length"},"Concrete curing, inspection and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"}};
+for(const [n,f] of Object.entries(groundFloorFields))substructureFields[n]=f;
+for(const [n,spec] of Object.entries(groundFloorMeasures)){
+ subMeasurements[n]={unit:spec.unit,columns:spec.columns,calc:r=>{
+  const length=Number(r.length)||0,width=Number(r.width)||0,depth=Number(r.depth)||0,count=Number(r.count)||0;
+  return spec.formula==="volume"?length*width*depth/1000*count:spec.formula==="length"?length*count:length*width*count;
+ }};
+}
+const FLOOR_SYSTEMS=["Ground-bearing concrete slab","Raft foundation forming floor","Suspended ground floor","Other / custom"];
+function isGroundFloor(){return currentStage==="Ground Floor Construction";}
+function getFloorConfig(){const c=getProjectData().workDetails?.groundFloor||{};return {system:c.system||FLOOR_SYSTEMS[0],enabled:Array.isArray(c.enabled)?c.enabled:null};}
+function suggestedFloorActivities(system){
+ const exclude=system===FLOOR_SYSTEMS[1]?["Ground floor concrete slab","Ground floor reinforcement"]:
+ system===FLOOR_SYSTEMS[2]?["Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling"]:[];
+ return groundFloorActivities.filter(n=>!exclude.includes(n));
+}
+function activeFloorActivities(){const c=getFloorConfig();return groundFloorActivities.filter(n=>(c.enabled||suggestedFloorActivities(c.system)).includes(n));}
+function saveFloorConfig(c){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.groundFloor={...c};localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}
+function renderFloorSelector(){
+ const box=document.getElementById("foundationSelector"),config=getFloorConfig(),active=activeFloorActivities();
+ box.hidden=false;box.innerHTML='<div class="sub-config"><div class="sub-config-header"><div><h3>Ground floor system</h3><p>Select the floor system, then review applicable activities. Drawings control actual requirements.</p></div><label>Floor type<select id="floorType">'+FLOOR_SYSTEMS.map(v=>option(v,config.system)).join("")+'</select></label></div><div class="sub-config-checks">'+groundFloorActivities.map(n=>'<label><input type="checkbox" class="floor-toggle" value="'+safe(n)+'" '+(active.includes(n)?"checked":"")+'> '+safe(n)+'</label>').join("")+'</div><p class="sub-notice">Do not duplicate work already measured under Substructure. Suspended floor quantities require structural review.</p></div>';
+ box.querySelector("#floorType").onchange=e=>{saveFloorConfig({system:e.target.value,enabled:null});renderActivities();};
+ box.querySelectorAll(".floor-toggle").forEach(el=>el.onchange=()=>{saveFloorConfig({system:box.querySelector("#floorType").value,enabled:[...box.querySelectorAll(".floor-toggle:checked")].map(e=>e.value)});renderActivities();});
+}
+
 function isSubstructure(){return currentStage==="Substructure";}
-function activityCatalog(){return isSubstructure()?substructureActivities:preliminariesActivities;}
+function activityCatalog(){return isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
 function getSubConfig(){const d=getProjectData().workDetails?.substructure||{};return {foundationType:d.foundationType||"Not specified",enabled:d.enabled||null};}
 function saveSubConfig(config){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.substructure={...config,updatedAt:new Date().toISOString()};try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));projectData=d;}catch(e){showToast("Could not save foundation settings.");}}
 // These are suggested activity selections, not design-approved exclusions.
@@ -178,7 +206,7 @@ function renderSubstructureDetails(){const defs=substructureFields[currentActivi
  return `<div class="field-group ${type==='textarea'?'full':''}"><label>${safe(label)}${required?' *':''}</label>${control}</div>`;}).join('');
  const spec=subMeasurements[currentActivity];const rows=Array.isArray(d.measurements)?d.measurements:[];
  stepContent.innerHTML=`<div class="step-intro"><h3>${safe(currentActivity)} Details</h3><p>Enter project-specific requirements and measurement groups. Quantities are in-place estimates, not automatic procurement or selling prices.</p></div><div class="field-grid">${fields}</div><div class="measurement-panel"><div class="measure-head"><div><h3>Measurement groups</h3><p>One row per distinct size, bar schedule or location. ${safe(spec.unit)} is the calculated unit.</p></div><button type="button" id="addMeasurement" class="secondary-button">+ Add measurement row</button></div><div id="measurementRows"></div><div class="measure-total"><span>Calculated total</span><strong id="measureTotal">—</strong></div><p class="sub-notice">${safe(measurementNotice(currentActivity))}</p></div>`;
-attachDetailListeners();renderMeasurementRows();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
+if(isMixActivity()){stepContent.insertAdjacentHTML('beforeend','<div id="mixPanel"></div>');}attachDetailListeners();renderMeasurementRows();if(isMixActivity())renderMixPanel();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
 function measurementNotice(activity){if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
 if(activity==='Foundation backfilling and compaction')return 'Calculated compacted in-place volume only. Bulking, shrinkage and imported material quantities require separately verified factors.';
 if(activity==='Ground beam concrete works')return 'Deduct beam intersections only where necessary to avoid double counting. Check overlaps with foundations and column starters.';
@@ -192,7 +220,7 @@ wrap.querySelectorAll('[data-measure-key]').forEach(input=>input.addEventListene
 wrap.querySelectorAll('[data-remove-measure]').forEach(btn=>btn.addEventListener('click',()=>{activityData.details.measurements.splice(Number(btn.dataset.removeMeasure),1);activityData.confirmed=false;saveProjectData();renderMeasurementRows();}));updateMeasureTotals();}
 function formatMeasure(n){return Number(n).toLocaleString('en-NG',{maximumFractionDigits:3});}
 function updateMeasureTotals(){const spec=subMeasurements[currentActivity];const rows=activityData.details.measurements||[];let total=0;let complete=0;rows.forEach((row,i)=>{const result=calcMeasured(spec,row);const el=document.querySelector(`[data-measure-result="${i}"]`);if(el)el.textContent=result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`;if(result!==null){total+=result;complete++;}});
- const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';}
+ const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';if(isMixActivity()){updateMixPreview();saveProjectData();}}
 function substructureReview(){const d=activityData.details;const fields=(substructureFields[currentActivity]||[]).map(([key,label])=>reviewLine(label,d[key]||'')).join('');const spec=subMeasurements[currentActivity];const rows=d.measurements||[];let total=0;let complete=0;const measurements=rows.map((row,i)=>{const result=calcMeasured(spec,row);if(result!==null){total+=result;complete++;}return reviewLine(`Measurement ${i+1}: ${row.ref||'Unlabelled'}`,result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`)}).join('');return `<div class="review-section"><h3>1. ${safe(currentActivity)} details</h3>${fields}<h3>Measurement groups</h3>${measurements||'<p>No measurements entered</p>'}${reviewLine('Calculated quantity',complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'Not calculated')}${reviewLine('Measurement caution',measurementNotice(currentActivity))}</div>`;}
 
 const stageDescriptions = {
@@ -643,7 +671,7 @@ function renderStages() {
 
   stageList.innerHTML = selectedStages.map((stage, index) => {
 
-    const completed = ["Preliminaries & Site Preparation", "Substructure"].includes(stage) && getCompletedActivityCount(stage) > 0;
+    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage) && getCompletedActivityCount(stage) > 0;
 
     return `
       <div class="stage-row" data-stage="${safe(stage)}" role="button" tabindex="0" aria-label="Open ${safe(stage)}">
@@ -665,7 +693,7 @@ function renderStages() {
 
         <span class="stage-meta">
           ${
-            ["Preliminaries & Site Preparation", "Substructure"].includes(stage)
+            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)
               ? `${getCompletedActivityCount(stage)} activities completed`
               : "Activities to be defined"
           }
@@ -704,7 +732,7 @@ function openStage(stage) {
   document.getElementById("activityEyebrow").textContent =
     "SELECTED CONSTRUCTION STAGE";
 
-  if (!["Preliminaries & Site Preparation", "Substructure"].includes(stage)) {
+  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)) {
 
     activityList.innerHTML = `
       <div class="empty-state">
@@ -733,7 +761,7 @@ function getActivityRecord(name) {
 }
 
 function getCompletedActivityCount(stage = currentStage) {
-  const list = stage === "Substructure" ? selectedSubActivities() : preliminariesActivities;
+  const list = stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
   return list.filter(name => {
     return getActivityRecord(name)?.confirmed;
   }).length;
@@ -744,10 +772,10 @@ function getCompletedActivityCount(stage = currentStage) {
 // ==========================================
 
 function renderActivities() {
-  const names=isSubstructure()?selectedSubActivities():preliminariesActivities;
+  const names=isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
   const completed=getCompletedActivityCount();
   const selector=document.getElementById('foundationSelector');
-  if(selector){selector.hidden=!isSubstructure();if(isSubstructure())renderFoundationSelector();}
+  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();}
   document.getElementById('activityProgress').textContent=`${completed} / ${names.length}`;
   activityList.innerHTML=names.length?names.map((name,index)=>{
     const record=getActivityRecord(name),confirmed=!!record?.confirmed;
@@ -764,7 +792,7 @@ function renderActivities() {
 // ==========================================
 
 function navigateSiblingActivity(direction) {
-  const names=activityCatalog().filter(name=>!isSubstructure()||selectedSubActivities().includes(name));
+  const names=activityCatalog().filter(name=>isSubstructure()?selectedSubActivities().includes(name):isGroundFloor()?activeFloorActivities().includes(name):true);
   const index=names.indexOf(currentActivity);
   const next=names[index+direction];
   if(!next)return;
@@ -772,7 +800,7 @@ function navigateSiblingActivity(direction) {
   openActivity(next);
 }
 function updateSiblingNavigation(){
-  const names=activityCatalog().filter(name=>!isSubstructure()||selectedSubActivities().includes(name));
+  const names=activityCatalog().filter(name=>isSubstructure()?selectedSubActivities().includes(name):isGroundFloor()?activeFloorActivities().includes(name):true);
   const index=names.indexOf(currentActivity);
   const supported=index>=0;
   document.querySelectorAll('[data-sibling]').forEach(btn=>{
@@ -1370,7 +1398,7 @@ function renderWorkDetails() {
     return;
   }
 
-  if (isSubstructure() && substructureFields[currentActivity]) {
+  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) {
     renderSubstructureDetails();
     return;
   }
@@ -1605,7 +1633,7 @@ function renderResourceRows(containerId, rows, type) {
 // ==========================================
 
 function renderMaterials() {
-
+  if(isMixActivity())syncMixMaterials();
   stepContent.innerHTML = `
 
     <div class="step-intro">
@@ -1626,7 +1654,7 @@ function renderMaterials() {
         arrangement and rate.
       </p>
 
-      <div id="materialsRows"></div>
+      <p class="sub-notice">Automatically generated placeholder material rows are unverified; validate before pricing. Additional manual materials and equipment remain editable.</p><div id="materialsRows"></div>
 
       <button
         type="button"
@@ -2339,7 +2367,7 @@ function renderReview() {
     `;
   }
 
-  if (isSubstructure() && substructureFields[currentActivity]) { detailsReview=substructureReview(); }
+  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
 
   // Generic review for the 11 stage-specific activity forms.
   if (Object.prototype.hasOwnProperty.call(activityFieldDefinitions, currentActivity)) {
@@ -2415,7 +2443,7 @@ function validateCurrentStep() {
     if (invalid) missing.push(field);
   });
 
-  if (isSubstructure() && currentStep===0) {
+  if ((isSubstructure() || isGroundFloor()) && currentStep===0) {
     const rows=activityData.details.measurements||[];
     const spec=subMeasurements[currentActivity];
     if (rows.some(row=>spec.columns.some(([key])=>row[key]===''||row[key]===null||row[key]===undefined||!Number.isFinite(Number(row[key]))||Number(row[key])<0))) {
@@ -2576,3 +2604,63 @@ document.getElementById("confirmActivity")
 
 renderStages();
 showView(stageView);
+
+// OK-QNB-003: prototype calculator functions
+function isMixActivity(){return currentActivity==="Ground floor concrete slab";}
+function mixState(){
+ const d=activityData.details;
+ d.mixDemo ||= {method:"site",parts:{cement:"1",sand:"2",gravel:"4"},units:{cement:"kg",sand:"kg",gravel:"kg"},factor:"1"};
+ return d.mixDemo;
+}
+function mixQuantities(){
+ const mix=mixState(),rows=activityData.details.measurements||[];
+ const spec=subMeasurements[currentActivity];
+ if(!rows.length||rows.some(row=>calcMeasured(spec,row)===null))return null;
+ const volume=rows.reduce((a,r)=>a+calcMeasured(spec,r),0);
+ if(mix.method==="ready")return {volume,ready:volume};
+ const parts=["cement","sand","gravel"].map(k=>Number(mix.parts[k]));
+ const factor=Number(mix.factor);
+ if(parts.some(n=>!Number.isFinite(n)||n<=0)||!Number.isFinite(factor)||factor<=0)return null;
+ const sum=parts.reduce((a,b)=>a+b,0),densities=[1440,1600,1500];
+ return {volume,cement:volume*factor*parts[0]/sum*densities[0],sand:volume*factor*parts[1]/sum*densities[1],gravel:volume*factor*parts[2]/sum*densities[2]};
+}
+function mixConvert(kg,unit){return unit==="t"?kg/1000:unit==="50kg-bags"?kg/50:kg;}
+function syncMixMaterials(){
+ if(!isMixActivity())return;
+ const m=mixState(),q=mixQuantities(),previous=activityData.materials||[];
+ const manual=previous.filter(x=>x.source!=="okike-placeholder-mix");
+ const old=Object.fromEntries(previous.filter(x=>x.source==="okike-placeholder-mix").map(x=>[x.materialKey,x]));
+ const generated=[];
+ if(q){
+  for(const key of(m.method==="ready"?["ready"]:["cement","sand","gravel"])){
+   const quantity=key==="ready"?q.ready:mixConvert(q[key],m.units[key]);
+   generated.push({name:({cement:"Cement",sand:"Sharp sand",gravel:"Gravel",ready:"Ready-mixed concrete"})[key],
+    quantity:String(Number(quantity.toFixed(4))),unit:key==="ready"?"m³":m.units[key],arrangement:"Purchased",rate:old[key]?.rate||"",
+    source:"okike-placeholder-mix",materialKey:key,formulaStatus:"UNVERIFIED_PLACEHOLDER"});
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function updateMixPreview(){
+ if(!isMixActivity())return;
+ const q=mixQuantities(),m=mixState(),volume=document.getElementById("mixVolume");
+ if(!volume)return;
+ volume.textContent=q?formatMeasure(q.volume)+" m³":"—";
+ for(const key of["cement","sand","gravel"]){
+  const out=document.querySelector('[data-mix-output="'+key+'"]');
+  if(out)out.textContent=q&&m.method==="site"?formatMeasure(mixConvert(q[key],m.units[key]))+" "+m.units[key]:"—";
+ }
+ const ready=document.getElementById("mixReady");
+ if(ready)ready.textContent=q?formatMeasure(q.volume)+" m³":"—";
+ syncMixMaterials();
+}
+function renderMixPanel(){
+ const host=document.getElementById("mixPanel");if(!host)return;
+ const m=mixState();
+ host.innerHTML='<div class="measurement-panel"><h3>Concrete mix — demonstration calculator</h3><p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> These quantities are for testing the form, not procurement, structural design or final quotations. Placeholder dry conversion factor and densities are not OKIKE-approved rules.</p><div class="field-grid"><div class="field-group"><label>Concrete supply</label><select id="mixMethod">'+option("site",m.method)+option("ready",m.method)+'</select></div><div class="field-group"><label>Calculated slab concrete volume</label><strong id="mixVolume">—</strong></div></div><div id="siteMixDetails" '+(m.method==="ready"?'hidden':'')+'><div class="field-grid">'+["cement","sand","gravel"].map(key=>'<div class="field-group"><label>'+key[0].toUpperCase()+key.slice(1)+' mix part</label><input type="number" min="0.001" step="any" data-mix-ratio="'+key+'" value="'+safe(m.parts[key])+'"><label>Calculated quantity</label><strong data-mix-output="'+key+'">—</strong><select data-mix-unit="'+key+'">'+["kg","t",...(key==="cement"?["50kg-bags"]:[])].map(v=>option(v,m.units[key])).join("")+'</select></div>').join("")+'</div><div class="field-group"><label>Illustrative dry-volume factor (not approved)</label><input id="mixFactor" type="number" min="0.001" step="any" value="'+safe(m.factor)+'"></div></div><p id="readyMixDetails" '+(m.method==="site"?'hidden':'')+'>Ready-mixed concrete volume: <strong id="mixReady">—</strong></p><p class="sub-notice">Demo mass model: slab volume × factor × (material mix part ÷ total parts) × assumed density. Demonstration densities: cement 1440, sand 1600, gravel 1500 kg/m³. No procurement allowance or bag rounding. Arbitrary proportions do not establish structural concrete suitability.</p></div>';
+ host.querySelector("#mixMethod").onchange=e=>{m.method=e.target.value;activityData.confirmed=false;renderMixPanel();syncMixMaterials();saveProjectData();};
+ host.querySelectorAll("[data-mix-ratio]").forEach(el=>el.oninput=()=>{m.parts[el.dataset.mixRatio]=el.value;activityData.confirmed=false;updateMixPreview();saveProjectData();});
+ host.querySelectorAll("[data-mix-unit]").forEach(el=>el.onchange=()=>{m.units[el.dataset.mixUnit]=el.value;activityData.confirmed=false;updateMixPreview();saveProjectData();});
+ host.querySelector("#mixFactor").oninput=e=>{m.factor=e.target.value;activityData.confirmed=false;updateMixPreview();saveProjectData();};
+ updateMixPreview();
+}
