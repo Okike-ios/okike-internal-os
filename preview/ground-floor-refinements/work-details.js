@@ -2613,10 +2613,6 @@ if (!localStorage.getItem(STORAGE_KEY)) {
     } }
   }));
 }
-renderStages();
-openStage("Ground Floor Construction");
-openActivity("Ground floor concrete slab");
-
 // OK-QNB-003: prototype calculator functions
 function isMixActivity(){return currentActivity==="Ground floor concrete slab";}
 function mixState(){
@@ -2759,3 +2755,9 @@ function updateDemoResource(){
  if(name)name.textContent=activityData.details.spec||"Not yet specified";
  syncDemoResource();
 }
+
+// Run the preview only after all demonstration constants and functions are initialized.
+renderStages();
+openStage("Ground Floor Construction");
+openActivity("Ground floor concrete slab");
+
