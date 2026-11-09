@@ -781,10 +781,7 @@ function renderActivities() {
     const record=getActivityRecord(name),confirmed=!!record?.confirmed;
     return `<div class="activity-row" data-activity="${safe(name)}" role="button" tabindex="0" aria-label="Open ${safe(name)}"><span class="stage-index">${String(index+1).padStart(2,'0')}</span><div class="activity-row-content"><h3>${safe(name)}</h3><p>${confirmed?`Confirmed · ${money(record.totalCost||0)}`:record?'Draft saved — not confirmed':'Work details and costing not yet completed.'}</p></div><span class="status-label ${confirmed?'':'status-pending'}">${confirmed?'Completed':'Not confirmed'}</span></div>`;
   }).join(''):'<div class="empty-state">No activities selected. Check the activities applicable to this foundation system above.</div>';
-  activityList.querySelectorAll('.activity-row[data-activity]').forEach(row=>{
-    row.addEventListener('click',()=>openActivity(row.dataset.activity));
-    row.addEventListener('keydown',e=>{if(e.target!==row)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();openActivity(row.dataset.activity);}});
-  });
+  // Activity handlers are delegated once below, so freshly rendered rows remain interactive.
 }
 
 // ==========================================
@@ -2761,3 +2758,32 @@ renderStages();
 openStage("Ground Floor Construction");
 openActivity("Ground floor concrete slab");
 
+
+/* OK-QNB-004 preview: single delegated row handler plus visible runtime diagnostics.
+   Deliberately scoped to this isolated preview, not the approved quotation application. */
+function openPreviewActivity(name) {
+  try {
+    if (!groundFloorActivities.includes(name)) return;
+    openActivity(name);
+    if (wizardView.hidden) throw new Error("Work Details did not become visible.");
+  } catch (error) {
+    console.error("OKIKE activity opening failed:", error);
+    const warning = document.getElementById("previewActivityError");
+    if (warning) {
+      warning.hidden = false;
+      warning.textContent = "Unable to open activity: " + (error && error.message ? error.message : String(error));
+    }
+    showToast("Activity could not open. See the error message above.");
+  }
+}
+activityList.addEventListener("click", event => {
+  const row = event.target.closest(".activity-row[data-activity]");
+  if (row && activityList.contains(row)) openPreviewActivity(row.dataset.activity);
+});
+activityList.addEventListener("keydown", event => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const row = event.target.closest(".activity-row[data-activity]");
+  if (!row || !activityList.contains(row)) return;
+  event.preventDefault();
+  openPreviewActivity(row.dataset.activity);
+});
