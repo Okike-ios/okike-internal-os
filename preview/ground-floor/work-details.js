@@ -162,7 +162,7 @@ const subMeasurements = {
 function num(value){const n=Number(value);return value===""||value==null||!Number.isFinite(n)||n<0?0:n;}
 
 const groundFloorActivities=["Ground floor preparation and level verification","Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement","Ground floor concrete slab","Slab construction joints, edges and finishing","Concrete curing, inspection and testing"];
-const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular material specification"],["method","Laying and compaction method"]],"Sand blinding and surface levelling":[["spec","Sand / blinding specification"],["method","Levelling method"]],"Damp-proof membrane installation":[["spec","Membrane specification"],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification"],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification"],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification"],["finish","Required slab finish"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
+const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular material specification","text",true],["method","Laying and compaction method"]],"Sand blinding and surface levelling":[["spec","Sand / blinding specification","select",true,["Sharp sand","Fine sand","Washed sand","Screened sand","Other (describe in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (describe in notes)"]],["notes","Alternative specification or method notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","text",true],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","text",true],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","text",true],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification"],["finish","Required slab finish"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
 const groundFloorMeasures={"Ground floor preparation and level verification":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Filling and raising of floor levels":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Filling compaction and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Hardcore / granular sub-base installation":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Sand blinding and surface levelling":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Damp-proof membrane installation":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Floor insulation and specialised protective layers":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor reinforcement":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor concrete slab":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Slab construction joints, edges and finishing":{"unit":"m","columns":[["length","Total length (m)","number"],["count","Repeats","number"]],"formula":"length"},"Concrete curing, inspection and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"}};
 for(const [n,f] of Object.entries(groundFloorFields))substructureFields[n]=f;
 for(const [n,spec] of Object.entries(groundFloorMeasures)){
@@ -206,7 +206,7 @@ function renderSubstructureDetails(){const defs=substructureFields[currentActivi
  return `<div class="field-group ${type==='textarea'?'full':''}"><label>${safe(label)}${required?' *':''}</label>${control}</div>`;}).join('');
  const spec=subMeasurements[currentActivity];const rows=Array.isArray(d.measurements)?d.measurements:[];
  stepContent.innerHTML=`<div class="step-intro"><h3>${safe(currentActivity)} Details</h3><p>Enter project-specific requirements and measurement groups. Quantities are in-place estimates, not automatic procurement or selling prices.</p></div><div class="field-grid">${fields}</div><div class="measurement-panel"><div class="measure-head"><div><h3>Measurement groups</h3><p>One row per distinct size, bar schedule or location. ${safe(spec.unit)} is the calculated unit.</p></div><button type="button" id="addMeasurement" class="secondary-button">+ Add measurement row</button></div><div id="measurementRows"></div><div class="measure-total"><span>Calculated total</span><strong id="measureTotal">—</strong></div><p class="sub-notice">${safe(measurementNotice(currentActivity))}</p></div>`;
-if(isMixActivity()){stepContent.insertAdjacentHTML('beforeend','<div id="mixPanel"></div>');}attachDetailListeners();renderMeasurementRows();if(isMixActivity())renderMixPanel();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
+if(isMixActivity()){stepContent.insertAdjacentHTML('beforeend','<div id="mixPanel"></div>');}if(hasDemoResource())stepContent.insertAdjacentHTML('beforeend','<div id="derivedResourcePanel"></div>');attachDetailListeners();renderMeasurementRows();if(isMixActivity())renderMixPanel();if(hasDemoResource())renderDemoResource();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
 function measurementNotice(activity){if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
 if(activity==='Foundation backfilling and compaction')return 'Calculated compacted in-place volume only. Bulking, shrinkage and imported material quantities require separately verified factors.';
 if(activity==='Ground beam concrete works')return 'Deduct beam intersections only where necessary to avoid double counting. Check overlaps with foundations and column starters.';
@@ -220,7 +220,7 @@ wrap.querySelectorAll('[data-measure-key]').forEach(input=>input.addEventListene
 wrap.querySelectorAll('[data-remove-measure]').forEach(btn=>btn.addEventListener('click',()=>{activityData.details.measurements.splice(Number(btn.dataset.removeMeasure),1);activityData.confirmed=false;saveProjectData();renderMeasurementRows();}));updateMeasureTotals();}
 function formatMeasure(n){return Number(n).toLocaleString('en-NG',{maximumFractionDigits:3});}
 function updateMeasureTotals(){const spec=subMeasurements[currentActivity];const rows=activityData.details.measurements||[];let total=0;let complete=0;rows.forEach((row,i)=>{const result=calcMeasured(spec,row);const el=document.querySelector(`[data-measure-result="${i}"]`);if(el)el.textContent=result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`;if(result!==null){total+=result;complete++;}});
- const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';if(isMixActivity()){updateMixPreview();saveProjectData();}}
+ const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';if(isMixActivity()){updateMixPreview();saveProjectData();}if(hasDemoResource()){updateDemoResource();saveProjectData();}}
 function substructureReview(){const d=activityData.details;const fields=(substructureFields[currentActivity]||[]).map(([key,label])=>reviewLine(label,d[key]||'')).join('');const spec=subMeasurements[currentActivity];const rows=d.measurements||[];let total=0;let complete=0;const measurements=rows.map((row,i)=>{const result=calcMeasured(spec,row);if(result!==null){total+=result;complete++;}return reviewLine(`Measurement ${i+1}: ${row.ref||'Unlabelled'}`,result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`)}).join('');return `<div class="review-section"><h3>1. ${safe(currentActivity)} details</h3>${fields}<h3>Measurement groups</h3>${measurements||'<p>No measurements entered</p>'}${reviewLine('Calculated quantity',complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'Not calculated')}${reviewLine('Measurement caution',measurementNotice(currentActivity))}</div>`;}
 
 const stageDescriptions = {
@@ -917,6 +917,7 @@ function attachDetailListeners() {
         activityData.details[field.dataset.detail] =
           field.value;
         activityData.confirmed=false;
+        if(hasDemoResource())updateDemoResource();
 
         clearInvalidState(field);
         saveProjectData();
@@ -1633,7 +1634,7 @@ function renderResourceRows(containerId, rows, type) {
 // ==========================================
 
 function renderMaterials() {
-  if(isMixActivity())syncMixMaterials();
+  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();
   stepContent.innerHTML = `
 
     <div class="step-intro">
@@ -2367,7 +2368,7 @@ function renderReview() {
     `;
   }
 
-  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
+  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(hasDemoResource())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> Automatically derived material quantities are not commercially approved.</p>'; if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
 
   // Generic review for the 11 stage-specific activity forms.
   if (Object.prototype.hasOwnProperty.call(activityFieldDefinitions, currentActivity)) {
@@ -2674,4 +2675,86 @@ function renderMixPanel(){
  host.querySelectorAll("[data-mix-unit]").forEach(el=>el.onchange=()=>{m.units[el.dataset.mixUnit]=el.value;activityData.confirmed=false;updateMixPreview();saveProjectData();});
  host.querySelector("#mixFactor").oninput=e=>{m.factor=e.target.value;activityData.confirmed=false;updateMixPreview();saveProjectData();};
  updateMixPreview();
+}
+
+
+/* OK-QNB-004: Provisional resource quantities. Rules are illustrative only.
+   Measurement results are physical quantities; this is an independent preview layer. */
+const DEMO_RESOURCE_ACTIVITIES=["Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement"];
+const DEMO_RESOURCE_UNITS={
+ "Hardcore / granular sub-base installation":["m³","yd³"],
+ "Sand blinding and surface levelling":["m³","yd³"],
+ "Damp-proof membrane installation":["m²","yd²","cm²","mm²","m","yd","cm","mm"],
+ "Floor insulation and specialised protective layers":["m²","yd²","cm²","mm²"],
+ "Ground floor reinforcement":["m²","yd²","cm²","mm²"]
+};
+function hasDemoResource(){return isGroundFloor()&&DEMO_RESOURCE_ACTIVITIES.includes(currentActivity);}
+function demoResourceState(){
+ const d=activityData.details;
+ if(!d.resourceDemo||typeof d.resourceDemo!=="object")d.resourceDemo={};
+ const x=d.resourceDemo;
+ const units=DEMO_RESOURCE_UNITS[currentActivity];
+ if(!units.includes(x.unit))x.unit=units[0];
+ if(x.factor===undefined)x.factor="1";
+ if(x.rollWidth===undefined)x.rollWidth="";
+ return x;
+}
+function demoResourceCalc(){
+ if(!hasDemoResource())return null;
+ const rows=activityData.details.measurements||[],spec=subMeasurements[currentActivity],config=demoResourceState();
+ if(!rows.length||rows.some(row=>calcMeasured(spec,row)===null))return null;
+ const base=rows.reduce((sum,row)=>sum+calcMeasured(spec,row),0);
+ const factor=Number(config.factor);
+ if(String(config.factor).trim()===""||!Number.isFinite(factor)||factor<=0)return null;
+ const nominal=base*factor;
+ let converted=nominal,unit=config.unit;
+ if(unit==="yd³")converted=nominal/0.764554857984;
+ if(unit==="yd²")converted=nominal/0.83612736;
+ if(unit==="cm²")converted=nominal*10000;
+ if(unit==="mm²")converted=nominal*1000000;
+ if(["m","yd","cm","mm"].includes(unit)){
+   const width=Number(config.rollWidth);
+   if(String(config.rollWidth).trim()===""||!Number.isFinite(width)||width<=0)return null;
+   converted=nominal/width;
+   if(unit==="yd")converted/=0.9144;
+   if(unit==="cm")converted*=100;
+   if(unit==="mm")converted*=1000;
+ }
+ return {base,quantity:converted,unit,factor};
+}
+function syncDemoResource(){
+ if(!hasDemoResource())return;
+ const key="okike-placeholder-floor-resource";
+ const existing=activityData.materials||[];
+ const past=existing.find(row=>row.source===key);
+ const manual=existing.filter(row=>row.source!==key);
+ const calc=demoResourceCalc();
+ if(!calc){activityData.materials=manual;return;}
+ const label=activityData.details.spec||({})[currentActivity]||currentActivity;
+ const generated={
+    name:label,quantity:String(Number(calc.quantity.toFixed(6))),unit:calc.unit,
+    arrangement:"Purchased",rate:past?.rate||"",
+    source:key,formulaStatus:"UNVERIFIED_PLACEHOLDER",materialKey:currentActivity
+ };
+ activityData.materials=[generated,...manual];
+}
+function renderDemoResource(){
+ const box=document.getElementById("derivedResourcePanel");
+ if(!box||!hasDemoResource())return;
+ const state=demoResourceState(),spec=activityData.details.spec||"Not yet specified";
+ box.innerHTML='<div class="measurement-panel demo-resource-panel"><h3>Provisional material quantity</h3><p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> This demonstrates the future calculator only. Do not use for purchase, quotation or engineering. Default factor is 1.0 and is not an approved procurement allowance.</p><p class="demo-spec-label">Specification: <strong id="demoSpec">'+safe(spec)+'</strong></p><div class="field-grid"><div class="field-group"><label>Demonstration factor</label><input id="demoFactor" type="number" min="0.001" step="any" value="'+safe(state.factor)+'"></div><div class="field-group"><label>Output unit</label><select id="demoUnit">'+DEMO_RESOURCE_UNITS[currentActivity].map(u=>option(u,state.unit)).join("")+'</select></div></div><div class="field-group" id="demoWidthGroup" '+(!["m","yd","cm","mm"].includes(state.unit)?"hidden":"")+'><label>Usable membrane roll width (m) — required for linear units</label><input id="demoRollWidth" type="number" min="0.001" step="any" value="'+safe(state.rollWidth)+'"></div><div class="measure-total"><span>Placeholder material requirement</span><strong id="demoTotal">—</strong></div><p class="sub-notice">Quantity = net measured '+safe(subMeasurements[currentActivity].unit)+' × demonstration factor. For membrane roll length: covered area ÷ usable roll width. Overlaps, wastage, mesh schedules and packaging are not included. Mesh/bar reinforcement is displayed as coverage area only, not bar mass.</p></div>';
+ const update=()=>{activityData.confirmed=false;updateDemoResource();saveProjectData();};
+ box.querySelector("#demoFactor").oninput=e=>{state.factor=e.target.value;update();};
+ box.querySelector("#demoUnit").onchange=e=>{state.unit=e.target.value;renderDemoResource();update();};
+ box.querySelector("#demoRollWidth")?.addEventListener("input",e=>{state.rollWidth=e.target.value;update();});
+ updateDemoResource();
+}
+function updateDemoResource(){
+ if(!hasDemoResource())return;
+ const calc=demoResourceCalc();
+ const output=document.getElementById("demoTotal");
+ if(output)output.textContent=calc?formatMeasure(calc.quantity)+" "+calc.unit:"— (complete measurements and unit requirements)";
+ const name=document.getElementById("demoSpec");
+ if(name)name.textContent=activityData.details.spec||"Not yet specified";
+ syncDemoResource();
 }
