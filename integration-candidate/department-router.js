@@ -79,7 +79,14 @@
   const section=(route.projectId&&route.section==='Home')?(route.projectSection||'Home'):route.section;
   const page=route.page||'Dashboard';
   const content=document.getElementById('content');
-  if(section!=='Home'&&section!=='Settings'){
+  if(route.section==='Home'&&route.projectId){
+    // Retain the central project header and cross-department tabs from Home.
+    // Replace only the inactive placeholder in the selected department tab.
+    if(['Administration','Finance','Project Management','Design','Media'].includes(section)){
+      const placeholder=content.querySelector('.placeholder');
+      if(placeholder)placeholder.outerHTML='<div class="department-project-content">'+showDepartment(section,page,route.projectId)+'</div>';
+    }
+  }else if(section!=='Home'&&section!=='Settings'){
     content.innerHTML=showDepartment(section,page,route.projectId);
   }
   const title=document.getElementById('topTitle');
