@@ -3,10 +3,14 @@ on:
   push:
     branches:
       - integration/department-ownership-v02
+      - integration/home-theme-reset-v03
   pull_request:
     paths:
       - 'integration-candidate/**'
       - '.github/workflows/okike-integration-checks.yml'
+concurrency:
+  group: okike-department-checks-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   static-and-browser:
     runs-on: ubuntu-24.04
@@ -22,8 +26,10 @@ jobs:
       - name: Install browser test dependencies
         run: |
           npm install --no-save playwright@1.58.2
-          npx playwright install --with-deps chromium
+          test -x /usr/bin/google-chrome || test -x /usr/bin/google-chrome-stable
       - name: Run department workflow browser smoke test
+        env:
+          OKIKE_CHROMIUM: /usr/bin/google-chrome
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/okike-http.log 2>&1 &
           node integration-candidate/tests/smoke.cjs

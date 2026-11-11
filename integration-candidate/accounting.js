@@ -4,7 +4,8 @@ const AK='okike_accounting_v1',roles=['Accounting','Admin','Project Manager','He
 const money=n=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(n||0),esc=escapeHtml;
 const today=()=>new Date().toISOString().slice(0,10),uid=p=>p+'-'+crypto.randomUUID().slice(0,8);
 function seedAccounting(){return {version:1,role:'Accounting',requests:[{id:'PR-001',project:'OK-2026-003',title:'Plywood for DUSL doors',supplier:'Demo timber supplier',amount:240000,category:'Project materials',reference:'Q-DUSL / Joinery / 01',evidence:'Demo supplier quote — illustrative',status:'Admin review',exception:false,endorse:[],origin:'Admin',created:today()}],invoices:[],payments:[],bank:[],journal:[],audit:[],notifications:[],opening:null,projectMeta:{'OK-2026-003':{quotation:2400000,budget:1600000,accepted:true,cycle:1,sow:'Draft',mobilised:false}},workOrders:[]};}
-let ac;try{ac=JSON.parse(localStorage.getItem(AK))||seedAccounting()}catch{ac=seedAccounting()}
+function emptyFinanceState(){return {version:1,role:'Accounting',requests:[],invoices:[],payments:[],bank:[],journal:[],audit:[],notifications:[],opening:null,projectMeta:{},workOrders:[]}}
+let ac;try{ac=JSON.parse(localStorage.getItem(AK))||emptyFinanceState()}catch{ac=emptyFinanceState()}
 const Repository={save(){try{localStorage.setItem(AK,JSON.stringify(ac));return true}catch{toast('Storage unavailable. Export your demo records before closing.',false);return false}}};
 const cats=['Project materials','Project labour','Project logistics','Operating expenses','Bank charges','Client receipt','Supplier payment','Owner contribution','Transfer'];
 function audit(action,record){ac.audit.unshift({date:new Date().toISOString(),role:ac.role,action,record});}
