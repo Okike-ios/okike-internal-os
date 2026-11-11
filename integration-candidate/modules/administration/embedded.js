@@ -1,43 +1,97 @@
-/* Administration adapter. The workflow engine in app.js is preserved. */
-(function(){
+(function departmentAdapter(){
  'use strict';
- const HOME_KEY='okike_internal_os_demo_v1',ADMIN_KEY='okike_admin_prototype_v1';
- document.body.classList.add('embedded');
- const roleNames={'Admin':'Administration','PM':'Project Manager','Head of PM':'Head of Project Management','Finance':'Finance','Head of Finance':'Head of Finance','MD':'Managing Director','Design':'Design','Media':'Media'};
- function notify(){try{window.parent.postMessage({type:'okike:administration-updated'},location.origin)}catch{}}
- function synchronize(){
-   let home;try{home=JSON.parse(localStorage.getItem(HOME_KEY))}catch{return}
-   if(!home||!Array.isArray(home.projects)||!Array.isArray(home.clients))return;
-   // Match by project name before assigning canonical identity; never replace workflow documents.
-   for(const p of state.projects){
-     let h=home.projects.find(x=>x.name.toLowerCase()===p.name.toLowerCase());
-     if(!h){h={id:p.id,name:p.name,description:p.brief||'',service:p.service,status:'Planning',progress:0,phase:'Project initiation',clientId:p.clientId,quotations:[],events:[]};
-       if(home.projects.some(x=>x.id===h.id)){let n=Math.max(0,...home.projects.map(x=>Number(x.id.match(/\d+$/)?.[0])||0))+1;h.id='OK-2026-'+String(n).padStart(3,'0')}
-       let client=state.clients.find(c=>c.id===p.clientId);let known=home.clients.find(c=>c.name.toLowerCase()===client?.name?.toLowerCase());
-       if(!known&&client){let n=Math.max(0,...home.clients.map(x=>Number(x.id.match(/\d+$/)?.[0])||0))+1;known={...client,id:'CL-'+String(n).padStart(4,'0')};home.clients.push(known)}
-       if(known)h.clientId=known.id;
-       home.projects.push(h);
-     }
-     let old=p.id;p.id=h.id;p.clientId=h.clientId;
-     for(const t of state.tasks)if(t.projectId===old)t.projectId=h.id;
+ const HOME_KEY='okike_internal_os_demo_v1';
+ const ADMIN_KEY='okike_admin_prototype_v1';
+ const supported={Administration:'Admin','Project Management':'PM',Design:'Design',Media:'Media'};
+ let currentDepartment='Administration';
+ let currentRole='Admin';
+ document.body.classList.add('embedded','department-contained');
+ function warn(message){console.warn('[OKIKE integration]',message)}
+ function communicate(){try{parent.postMessage({type:'okike:administration-updated',department:currentDepartment},location.origin)}catch(e){}}
+ function syncRecords(){
+  let home;try{home=JSON.parse(localStorage.getItem(HOME_KEY))}catch(e){return}
+  if(!home||!Array.isArray(home.projects)||!Array.isArray(home.clients))return;
+  let changed=false;
+  const normalize=x=>String(x||'').trim().toLocaleLowerCase();
+  function nextId(prefix,entries,pad){
+   let n=Math.max(0,...entries.map(x=>Number(String(x.id||'').match(/\d+$/)?.[0])||0))+1;
+   let proposed=prefix+String(n).padStart(pad,'0');
+   while(entries.some(x=>x.id===proposed)){n++;proposed=prefix+String(n).padStart(pad,'0')}
+   return proposed;
+  }
+  for(const p of state.projects){
+   // The original prototypes were independent: match the same named project,
+   // never assume that an identical seed ID refers to the same job.
+   let matches=home.projects.filter(h=>normalize(h.name)===normalize(p.name));
+   if(matches.length>1){warn('Ambiguous project match: '+p.name);continue}
+   let h=matches[0];
+   const client=state.clients.find(c=>c.id===p.clientId);
+   let savedClient=client&&home.clients.find(c=>normalize(c.name)===normalize(client.name));
+   if(client&&!savedClient){
+    const clientId=nextId('CL-',home.clients,4);
+    savedClient={...client,id:clientId};home.clients.push(savedClient);changed=true;
    }
-   // Add recently created Home projects to Administration; an existing workflow record always wins.
-   for(const h of home.projects){if(state.projects.some(p=>p.id===h.id))continue;
-     const c=home.clients.find(c=>c.id===h.clientId);if(c&&!state.clients.some(x=>x.id===c.id))state.clients.push({...c});
-     state.projects.push({id:h.id,name:h.name,clientId:h.clientId,service:h.service||'Other Services',route:'Design first',brief:h.description||'',docs:[],milestones:[],mobilised:false,events:[]});
+   if(!h){
+    h={id:nextId('OK-2026-',home.projects,3),name:p.name,description:p.brief||'',clientId:savedClient?.id||p.clientId,service:p.service,status:'Planning',progress:0,phase:'Project initiation',quotations:[],events:[]};
+    home.projects.push(h);changed=true;
    }
-   // Canonical clients resolve by the same Client ID in every department.
+   if(savedClient&&h.clientId!==savedClient.id){h.clientId=savedClient.id;changed=true}
+   const old=p.id;
+   if(old!==h.id){p.id=h.id;changed=true;for(const t of state.tasks||[])if(t.projectId===old)t.projectId=h.id}
+   if(p.clientId!==h.clientId){p.clientId=h.clientId;changed=true}
+  }
+  for(const h of home.projects){
+   if(state.projects.some(p=>p.id===h.id))continue;
+   const c=home.clients.find(c=>c.id===h.clientId);
+   if(c&&!state.clients.some(x=>x.id===c.id))state.clients.push({...c});
+   state.projects.push({id:h.id,name:h.name,clientId:h.clientId,service:h.service||'Other Services',route:'Design first',brief:h.description||'',docs:[],milestones:[],mobilised:false,events:[]});changed=true;
+  }
+  // Home maintains stable client/project IDs; Administration owns the workflow documents.
+  if(changed){
    state.clients=home.clients.map(c=>({...c}));
-   localStorage.setItem(ADMIN_KEY,JSON.stringify(state));localStorage.setItem(HOME_KEY,JSON.stringify(home));
+   localStorage.setItem(ADMIN_KEY,JSON.stringify(state));
+   localStorage.setItem(HOME_KEY,JSON.stringify(home));
+  }
  }
- // Run after initial app.js state load; save original app render and mutate implementations.
- try{synchronize()}catch(e){console.warn('OKIKE demo sync skipped:',e)}
- const originalRender=render;
- render=function(){originalRender();const select=document.getElementById('role');if(select){for(const opt of select.options)opt.textContent=roleNames[opt.value]||opt.value}
-   const target=document.getElementById('app');const walker=document.createTreeWalker(target,NodeFilter.SHOW_TEXT);let textNode;while(textNode=walker.nextNode()){const parent=textNode.parentElement;if(parent&&['SCRIPT','STYLE','TEXTAREA','OPTION'].includes(parent.tagName))continue;const value=textNode.nodeValue;const clean=value.replace(/\bHead of PM\b/g,'Head of Project Management').replace(/\bPM\b/g,'Project Manager').replace(/\bMD\b/g,'Managing Director').replace(/\bAdmin\b/g,'Administration');if(clean!==value)textNode.nodeValue=clean}
-   document.body.classList.add('embedded')};
- const originalMutate=mutate;
- mutate=function(fn){const success=originalMutate(fn);if(success){try{synchronize()}catch(e){console.warn('Project sync skipped',e)}notify()}return success};
- window.addEventListener('message',e=>{if(e.origin!==location.origin)return;if(e.data?.type==='okike:admin-nav'){go(e.data.page||'My Workspace',e.data.projectId||null)}if(e.data?.type==='okike:home-updated'){try{synchronize();render()}catch{}}});
- render();notify();
+ try{syncRecords()}catch(e){warn(e.message)}
+ const nativeRender=render;
+ const nativeHeading=heading;
+ heading=function(title,description,action){
+   return nativeHeading(title,description,action).replace('Administration / ',currentDepartment+' / ');
+ };
+ render=function(){
+  role=currentRole;
+  nativeRender();
+  document.body.classList.add('embedded','department-contained');
+  const select=document.getElementById('role');
+  if(select)select.remove();
+ };
+ const nativeMutate=mutate;
+ mutate=function(fn){
+  const ok=nativeMutate(fn);
+  if(ok){try{syncRecords()}catch(e){warn(e.message)}communicate()}
+  return ok;
+ };
+ window.addEventListener('message',event=>{
+  if(event.origin!==location.origin)return;
+  const message=event.data||{};
+  if(message.type==='okike:department-context'){
+   const assigned=supported[message.department];
+   if(!assigned || message.role!==assigned){warn('Rejected invalid department context');return}
+   currentDepartment=message.department;
+   currentRole=assigned;
+   role=assigned;
+   taskFilter=assigned;
+   const validPages=['My Workspace','My Tasks','Team Workspace','Enquiries & Assessment','Clients','Projects','Company Documents','Messages','Policies & SOPs','Reporting Structure','Staff Directory'];
+   const destination=validPages.includes(message.page)?message.page:'My Tasks';
+   const project=message.projectId&&state.projects.some(p=>p.id===message.projectId)?message.projectId:null;
+   try{syncRecords()}catch(e){warn(e.message)}
+   go(project?'Project':destination,project);
+  }
+  if(message.type==='okike:home-updated'){
+   try{syncRecords();render()}catch(e){warn(e.message)}
+  }
+ });
+ render();
+ communicate();
 })();
