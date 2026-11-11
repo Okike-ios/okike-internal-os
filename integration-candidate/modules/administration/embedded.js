@@ -8,51 +8,7 @@
  document.body.classList.add('embedded','department-contained');
  function warn(message){console.warn('[OKIKE integration]',message)}
  function communicate(){try{parent.postMessage({type:'okike:administration-updated',department:currentDepartment},location.origin)}catch(e){}}
- function syncRecords(){
-  let home;try{home=JSON.parse(localStorage.getItem(HOME_KEY))}catch(e){return}
-  if(!home||!Array.isArray(home.projects)||!Array.isArray(home.clients))return;
-  let changed=false;
-  const normalize=x=>String(x||'').trim().toLocaleLowerCase();
-  function nextId(prefix,entries,pad){
-   let n=Math.max(0,...entries.map(x=>Number(String(x.id||'').match(/\d+$/)?.[0])||0))+1;
-   let proposed=prefix+String(n).padStart(pad,'0');
-   while(entries.some(x=>x.id===proposed)){n++;proposed=prefix+String(n).padStart(pad,'0')}
-   return proposed;
-  }
-  for(const p of state.projects){
-   // The original prototypes were independent: match the same named project,
-   // never assume that an identical seed ID refers to the same job.
-   let matches=home.projects.filter(h=>normalize(h.name)===normalize(p.name));
-   if(matches.length>1){warn('Ambiguous project match: '+p.name);continue}
-   let h=matches[0];
-   const client=state.clients.find(c=>c.id===p.clientId);
-   let savedClient=client&&home.clients.find(c=>normalize(c.name)===normalize(client.name));
-   if(client&&!savedClient){
-    const clientId=nextId('CL-',home.clients,4);
-    savedClient={...client,id:clientId};home.clients.push(savedClient);changed=true;
-   }
-   if(!h){
-    h={id:nextId('OK-2026-',home.projects,3),name:p.name,description:p.brief||'',clientId:savedClient?.id||p.clientId,service:p.service,status:'Planning',progress:0,phase:'Project initiation',quotations:[],events:[]};
-    home.projects.push(h);changed=true;
-   }
-   if(savedClient&&h.clientId!==savedClient.id){h.clientId=savedClient.id;changed=true}
-   const old=p.id;
-   if(old!==h.id){p.id=h.id;changed=true;for(const t of state.tasks||[])if(t.projectId===old)t.projectId=h.id}
-   if(p.clientId!==h.clientId){p.clientId=h.clientId;changed=true}
-  }
-  for(const h of home.projects){
-   if(state.projects.some(p=>p.id===h.id))continue;
-   const c=home.clients.find(c=>c.id===h.clientId);
-   if(c&&!state.clients.some(x=>x.id===c.id))state.clients.push({...c});
-   state.projects.push({id:h.id,name:h.name,clientId:h.clientId,service:h.service||'Other Services',route:'Design first',brief:h.description||'',docs:[],milestones:[],mobilised:false,events:[]});changed=true;
-  }
-  // Home maintains stable client/project IDs; Administration owns the workflow documents.
-  if(changed){
-   state.clients=home.clients.map(c=>({...c}));
-   localStorage.setItem(ADMIN_KEY,JSON.stringify(state));
-   localStorage.setItem(HOME_KEY,JSON.stringify(home));
-  }
- }
+ function syncRecords(){ /* Administration owns project identity; Home is a read-only projection. */ }
  try{syncRecords()}catch(e){warn(e.message)}
  const nativeDashboard=dashboard;
  dashboard=function(){
@@ -94,6 +50,8 @@
   if(currentDepartment==='Administration')wrapper.querySelectorAll('[data-action="quotation"],[data-action="sow"],[data-action="milestone"]').forEach(button=>button.remove());
   return wrapper.innerHTML;
  };
+ // Store the initial Administration demo only once; Home must never generate projects.
+ try{if(!localStorage.getItem(ADMIN_KEY))localStorage.setItem(ADMIN_KEY,JSON.stringify(state))}catch(e){warn(e.message)}
  const nativeRender=render;
  const nativeHeading=heading;
  heading=function(title,description,action){
@@ -120,6 +78,7 @@
    if(!assigned || message.role!==assigned){warn('Rejected invalid department context');return}
    currentDepartment=message.department;
    currentRole=assigned;
+   prefs.theme=message.theme==='dark'?'dark':'light';
    role=assigned;
    taskFilter=assigned;
    const validPages=['My Workspace','My Tasks','Team Workspace','Enquiries & Assessment','Clients','Projects','Company Documents','Messages','Policies & SOPs','Reporting Structure','Staff Directory'];
