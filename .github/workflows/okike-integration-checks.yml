@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - integration/department-ownership-v02
+      - integration/home-theme-reset-v03
   pull_request:
     paths:
       - 'integration-candidate/**'
