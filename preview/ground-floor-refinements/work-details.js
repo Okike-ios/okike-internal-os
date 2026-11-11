@@ -2812,3 +2812,30 @@ function updateDemoResource(){
  if(spec)spec.textContent=activityData.details.spec||"Not yet specified";
  syncDemoResource();
 }
+
+/* Preview row access: use one delegated handler, including dynamically refreshed rows. */
+function openPreviewActivity(name){
+ try{
+  if(!groundFloorActivities.includes(name))return;
+  openActivity(name);
+  if(wizardView.hidden)throw new Error("Wizard did not become visible");
+  const banner=document.getElementById("previewActivityError");if(banner)banner.hidden=true;
+ }catch(error){
+  console.error("OKIKE activity open error",error);
+  const banner=document.getElementById("previewActivityError");
+  if(banner){banner.hidden=false;banner.textContent="Unable to open activity: "+(error?.message||String(error));}
+ }
+}
+activityList.addEventListener("click",event=>{
+ const row=event.target.closest(".activity-row[data-activity]");
+ if(row&&activityList.contains(row))openPreviewActivity(row.dataset.activity);
+});
+activityList.addEventListener("keydown",event=>{
+ if(event.key!=="Enter"&&event.key!==" ")return;
+ const row=event.target.closest(".activity-row[data-activity]");
+ if(row&&activityList.contains(row)){event.preventDefault();openPreviewActivity(row.dataset.activity);}
+});
+// Initialize after all constants, lookup tables and handlers have been registered.
+renderStages();
+openStage("Ground Floor Construction");
+openActivity("Ground floor concrete slab");
