@@ -1,0 +1,18 @@
+/* Department-wide theme parity and Home live-data indicators. */
+.task-indicator{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:4px;color:var(--sage);font-size:16px;margin-right:8px}
+body[data-theme="dark"] .department-module{background:var(--page)}
+body[data-theme="dark"] .accounting,
+body[data-theme="dark"] .section-shell,
+body[data-theme="dark"] .department-project-content{color:var(--ink);background:var(--page)}
+body[data-theme="dark"] .integration-note,
+body[data-theme="dark"] .department-title{background:var(--panel);color:var(--ink);border-color:var(--line)}
+body[data-theme="dark"] .accounting input,
+body[data-theme="dark"] .accounting select,
+body[data-theme="dark"] .accounting textarea{background:var(--soft);color:var(--ink);border-color:var(--line)}
+body[data-theme="dark"] .accounting .card,
+body[data-theme="dark"] .accounting .acct-banner,
+body[data-theme="dark"] .accounting .acct-table{background:var(--panel);color:var(--ink);border-color:var(--line)}
+body[data-theme="dark"] .accounting .data-table th,
+body[data-theme="dark"] .accounting .data-table td{border-color:var(--line);color:var(--ink)}
+body[data-theme="dark"] .accounting .note,
+body[data-theme="dark"] .accounting small{color:var(--sub)}
