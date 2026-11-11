@@ -2776,7 +2776,7 @@ function syncDemoResource(){
  const keep=existing.filter(r=>r.source!==tag),r=standardMaterialQuantity();
  if(r.error){activityData.materials=keep;return;}
  activityData.materials=[{name:r.material,quantity:String(Number(r.quantity.toFixed(6))),unit:r.unit,
- arrangement:"Purchased",rate:old?.rate||"",source:tag,formulaStatus:"MEASURED_REFERENCE_METHOD",
+ arrangement:"Purchased",rate:(old?.name===r.material&&old?.unit===r.unit)?(old.rate||""):"",source:tag,formulaStatus:"MEASURED_REFERENCE_METHOD",
  materialKey:currentActivity},...keep];
 }
 function renderDemoResource(){
