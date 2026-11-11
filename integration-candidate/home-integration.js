@@ -47,6 +47,13 @@
    if(!text)return;
    out.push({id:'workflow-'+id,text,department:dept,projectId,priority:'Pending',done:false});
   }
+  const savedQueue=safeRead('okike_admin_work_queue_v1',null);
+  if(Array.isArray(savedQueue)){
+   for(const [i,t] of savedQueue.entries()){
+    if(['Completed','Rejected','Cancelled'].includes(t.status))continue;
+    push(t.id||String(i),t.title+(t.sub?' · '+t.sub:''),t.dept||'Administration',t.pid||null);
+   }
+  }else{
   for(const e of admin.enquiries||[])if(['New','Follow-up needed'].includes(e.status))push('enquiry-'+e.id,'Assess enquiry · '+e.name,'Administration',null);
   for(const p of admin.projects||[]){
    if(p.cancelled)continue;
@@ -59,6 +66,7 @@
    for(const m of p.milestones||[])if(m.status==='Submitted')push(p.id+'-ms-'+m.id,'Verify milestone · '+m.name,'Project Management',p.id);
   }
   for(const t of admin.tasks||[])if(!['Completed','Cancelled','Rejected'].includes(t.status)&&!t.done)push('admin-'+t.id,t.title||t.text,t.dept||'Administration',t.projectId);
+  }
   for(const r of finance.requests||[])if(!['Paid','Rejected'].includes(r.status))push('finance-'+r.id,'Purchase request · '+r.title+' ('+r.status+')',r.status==='Admin review'?'Administration':'Finance',r.project);
   return [...new Map(out.map(t=>[t.id,t])).values()];
  }
@@ -148,6 +156,7 @@
   localStorage.setItem(FINANCE,JSON.stringify(emptyFinance()));
   localStorage.setItem(HOME,JSON.stringify({version:1,clients:[],projects:[],tasks:[],announcements:[]}));
   for(const key of keys)localStorage.removeItem(key);
+  localStorage.removeItem('okike_admin_work_queue_v1');
   location.reload();
  }
  document.addEventListener('click',function(event){
