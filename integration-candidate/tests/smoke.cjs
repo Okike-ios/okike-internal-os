@@ -93,7 +93,7 @@
   });
   assert(empty.a===0&&empty.enquiries===0&&empty.finance===0&&empty.home===0,'Reset Demo did not clear all test records');
   await openSection('Administration');
-  assert(await page.frameLocator('#okikeDepartmentFrame').evaluate(()=>state.projects.length)===0,'Administration re-seeded old data after reset');
+  assert(await page.frameLocator('#okikeDepartmentFrame').locator('body').evaluate(()=>state.projects.length)===0,'Administration re-seeded old data after reset');
   await openSection('Home');
   assert(await page.evaluate(()=>state.projects.length)===0,'Home repopulated sample projects after reset');
   assert(errors.length===0,'Browser errors: '+errors.join('; '));
