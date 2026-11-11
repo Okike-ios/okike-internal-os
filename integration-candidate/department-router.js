@@ -44,7 +44,8 @@
   return '<section class="card card-pad"><h2>'+escapeHtml(section)+' activities</h2><p class="note">Choose an activity to open its departmental workflow.</p><div class="section-link-grid">'+items.map(p=>'<button data-page="'+escapeHtml(p)+'" data-section="'+escapeHtml(section)+'">'+escapeHtml(p)+' <span class="tile-arrow">↗</span></button>').join('')+'</div></section>';
  }
  function financePanel(page,section){
-  ac.role=roleFor[section]||'Accounting';
+  // Administration engine uses PM; Finance's purchasing engine calls the same department Project Manager.
+  ac.role=section==='Project Management'?'Project Manager':roleFor[section]||'Accounting';
   const financePage=page==='Finance Inbox'?'Accounting Inbox':page;
   return financeView(financePage);
  }
