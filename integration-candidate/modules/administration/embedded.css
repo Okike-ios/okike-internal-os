@@ -11,3 +11,39 @@ body.department-contained .heading .eyebrow{color:var(--orange,#C96A32)}
 body.department-contained .main{margin:0!important;padding:0!important}
 body.department-contained .banner{margin-bottom:16px}
 @media(max-width:760px){body.department-contained .content{padding:12px!important}}
+
+/* Shared IOS theme. The parent application controls the embedded department theme. */
+body.department-contained.dark{--bg:#101011;--panel:#1d1b1b;--ink:#F4F1EB;--muted:#B6B2AC;--line:#3A3735;--soft:#262321;--rail:#26211E;color-scheme:dark}
+body.department-contained.dark,
+body.department-contained.dark .main,
+body.department-contained.dark .content,
+body.department-contained.dark #app{background:var(--bg)!important;color:var(--ink)!important}
+body.department-contained.dark .card,
+body.department-contained.dark .modal,
+body.department-contained.dark .dialog,
+body.department-contained.dark .notice,
+body.department-contained.dark .banner,
+body.department-contained.dark .tablewrap,
+body.department-contained.dark .tabs,
+body.department-contained.dark .info-grid > div,
+body.department-contained.dark .metric{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+body.department-contained.dark input,
+body.department-contained.dark select,
+body.department-contained.dark textarea{background:var(--soft)!important;color:var(--ink)!important;border-color:var(--line)!important}
+body.department-contained.dark input::placeholder,
+body.department-contained.dark textarea::placeholder{color:var(--muted)!important}
+body.department-contained.dark table,
+body.department-contained.dark td,
+body.department-contained.dark th,
+body.department-contained.dark .activity,
+body.department-contained.dark .gate,
+body.department-contained.dark .list-item{background:transparent;color:var(--ink);border-color:var(--line)!important}
+body.department-contained.dark thead,
+body.department-contained.dark tr:nth-child(even){background:var(--soft)!important}
+body.department-contained.dark button:not(.primary):not(.nav):not(.active),
+body.department-contained.dark .tab:not(.active){background:var(--soft);color:var(--ink);border-color:var(--line)}
+body.department-contained.dark .muted,
+body.department-contained.dark small{color:var(--muted)}
+body.department-contained.dark .modal-backdrop{background:rgba(0,0,0,.68)}
+body.department-contained.dark .status,
+body.department-contained.dark .badge{border-color:var(--line)}
