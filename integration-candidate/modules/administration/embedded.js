@@ -54,6 +54,16 @@
   }
  }
  try{syncRecords()}catch(e){warn(e.message)}
+ const nativeDashboard=dashboard;
+ dashboard=function(){
+  if(currentDepartment==='Administration')return nativeDashboard();
+  const assigned=queue().filter(item=>item.dept===currentRole);
+  const projects=state.projects||[];
+  return heading(currentDepartment+' workspace','Department assignments and project handoffs.')
+   +'<div class="metrics"><div class="metric"><strong>'+assigned.length+'</strong><small>Assigned actions</small></div><div class="metric"><strong>'+projects.length+'</strong><small>Shared projects</small></div></div>'
+   +'<section class="card pad"><div class="row"><h2>Department work queue</h2><button class="btn" data-page="Projects">View projects</button></div>'
+   +actionsTable(assigned)+'</section>';
+ };
  const nativeProjectPage=projectPage;
  const nativeCancellationPanel=cancellationPanel;
  cancellationPanel=function(p){return ['Design','Media'].includes(currentDepartment)?'':nativeCancellationPanel(p)};
