@@ -2842,7 +2842,7 @@ function renderDemoResource(){
  '<div class="measure-total"><span>Calculated material quantity</span><strong id="demoTotal">—</strong></div>'+
  '<p class="sub-notice" id="demoMethodNote"></p></div>';
  host.querySelector("#demoUnit").addEventListener("change",e=>{state.unit=e.target.value;activityData.confirmed=false;renderDemoResource();saveProjectData();});
- host.querySelectorAll("[data-derived]").forEach(input=>input.addEventListener("input",e=>{
+ host.querySelectorAll("[data-derived]").forEach(input=>input.addEventListener(input.tagName==="SELECT"?"change":"input",e=>{
    state[e.target.dataset.derived]=e.target.dataset.derived==="barDiameter"?e.target.value.replace(" mm",""):e.target.value;activityData.confirmed=false;if(e.target.dataset.derived==="barArrangement")renderDemoResource();else updateDemoResource();saveProjectData();
  }));
  updateDemoResource();
