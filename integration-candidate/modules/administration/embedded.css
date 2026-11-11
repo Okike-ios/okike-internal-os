@@ -1,0 +1,5 @@
+/* The Administration workflow retains its original screens within the shared IOS navigation. */
+body.embedded .sidebar{display:none!important}body.embedded .main{margin:0!important;width:100%!important;max-width:none!important;min-height:100vh}
+body.embedded .topbar{padding:12px 24px;min-height:64px}body.embedded .content{max-width:none;padding:22px 24px}
+body.embedded .brand{display:none}body.embedded .banner{line-height:1.5}
+@media(max-width:700px){body.embedded .content{padding:12px}body.embedded .topbar{padding:9px 12px}}
