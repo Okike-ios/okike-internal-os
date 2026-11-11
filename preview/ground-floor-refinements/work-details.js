@@ -162,7 +162,7 @@ const subMeasurements = {
 function num(value){const n=Number(value);return value===""||value==null||!Number.isFinite(n)||n<0?0:n;}
 
 const groundFloorActivities=["Ground floor preparation and level verification","Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement","Ground floor concrete slab","Slab construction joints, edges and finishing","Concrete curing, inspection and testing"];
-const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular sub-base material","select",true,["Graded crushed stone","Crushed granite aggregate","Graded natural gravel","Lateritic granular fill","Other (specify in notes)"]],["method","Laying and compaction method"],["notes","Source and grading / approved material notes","textarea"]],"Sand blinding and surface levelling":[["spec","Sand / blinding material","select",true,["Sharp sand","Washed sand","Fine sand","Screened sand","Other (specify in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (specify in notes)"]],["notes","Material / levelling notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","select",true,["Polyethylene DPM 250 micron (4 × 25 m roll)","Polyethylene DPM 300 micron (4 × 25 m roll)","Polyethylene DPM 500 micron (4 × 12.5 m roll)","Other membrane / roll size"]],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","select",true,["Expanded polystyrene (EPS) board","Extruded polystyrene (XPS) board","Polyisocyanurate (PIR) board","Rigid mineral wool board","Other / proprietary protection"]],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","select",true,["A142 welded mesh (2.22 kg/m²)","A193 welded mesh (3.02 kg/m²)","A252 welded mesh (3.95 kg/m²)","A393 welded mesh (6.16 kg/m²)","Reinforcing bars — bar schedule required","Other / engineered reinforcement"]],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification","select",true,["Construction joint","Saw-cut control joint","Expansion / isolation joint","Formed joint","Other — describe in notes"]],["finish","Required slab finish","select",true,["Power-floated","Steel-trowelled","Broom finish","Roughened / keyed","Other — describe in notes"]],["notes","Additional joint / finish specification","textarea"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
+const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular sub-base material","select",true,["Graded crushed stone","Crushed granite aggregate","Graded natural gravel","Lateritic granular fill","Other (specify in notes)"]],["method","Laying and compaction method"],["notes","Source and grading / approved material notes","textarea"]],"Sand blinding and surface levelling":[["spec","Sand / blinding material","select",true,["Sharp sand","Washed sand","Fine sand","Screened sand","Other (specify in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (specify in notes)"]],["notes","Material / levelling notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","select",true,["Polyethylene DPM 250 micron (4 × 25 m roll)","Polyethylene DPM 300 micron (4 × 25 m roll)","Polyethylene DPM 500 micron (4 × 12.5 m roll)","Other membrane / roll size"]],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","select",true,["Expanded polystyrene (EPS) board","Extruded polystyrene (XPS) board","Polyisocyanurate (PIR) board","Rigid mineral wool board","Other / proprietary protection"]],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","select",true,["A142 welded mesh (2.22 kg/m²)","A193 welded mesh (3.02 kg/m²)","A252 welded mesh (3.95 kg/m²)","A393 welded mesh (6.16 kg/m²)","Reinforcing bars — diameter and spacing","Other / engineered reinforcement"]],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification","select",true,["Construction joint","Saw-cut control joint","Expansion / isolation joint","Formed joint","Other — describe in notes"]],["finish","Required slab finish","select",true,["Power-floated","Steel-trowelled","Broom finish","Roughened / keyed","Other — describe in notes"]],["notes","Additional joint / finish specification","textarea"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
 const groundFloorMeasures={"Ground floor preparation and level verification":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Filling and raising of floor levels":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Filling compaction and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Hardcore / granular sub-base installation":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Sand blinding and surface levelling":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Damp-proof membrane installation":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Floor insulation and specialised protective layers":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor reinforcement":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor concrete slab":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Slab construction joints, edges and finishing":{"unit":"m","columns":[["length","Total length (m)","number"],["count","Repeats","number"]],"formula":"length"},"Concrete curing, inspection and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"}};
 for(const [n,f] of Object.entries(groundFloorFields))substructureFields[n]=f;
 for(const [n,spec] of Object.entries(groundFloorMeasures)){
@@ -202,12 +202,14 @@ box.hidden=false;box.innerHTML=`<div class="sub-config"><div class="sub-config-h
 box.querySelector('#foundationType').addEventListener('change',e=>{const type=e.target.value;saveSubConfig({foundationType:type,enabled:foundationRecommendations(type)});renderActivities();});
 box.querySelectorAll('.sub-activity-check').forEach(ch=>ch.addEventListener('change',()=>{const enabled=[...box.querySelectorAll('.sub-activity-check:checked')].map(x=>x.value);saveSubConfig({foundationType:box.querySelector('#foundationType').value,enabled});renderActivities();}));}
 function renderSubstructureDetails(){const defs=substructureFields[currentActivity]||[];const d=activityData.details;
+ if(currentActivity==="Ground floor reinforcement"&&d.spec==="Reinforcing bars — bar schedule required")d.spec="Reinforcing bars — diameter and spacing";
  const fields=defs.map(([key,label,type='text',required=false,options])=>{let control=type==='select'?`<select data-detail="${safe(key)}" ${required?'required':''}><option value="">Select (optional unless marked *)</option>${options.map(x=>option(x,d[key]||'')).join('')}</select>`:type==='textarea'?`<textarea data-detail="${safe(key)}" ${required?'required':''} placeholder="Optional">${safe(d[key]||'')}</textarea>`:`<input data-detail="${safe(key)}" type="${type}" value="${safe(d[key]||'')}" ${required?'required':''} ${type==='number'?'min="0" step="any"':''} placeholder="${required?'Required':'Optional'}">`;
  return `<div class="field-group ${type==='textarea'?'full':''}"><label>${safe(label)}${required?' *':''}</label>${control}</div>`;}).join('');
  const spec=subMeasurements[currentActivity];const rows=Array.isArray(d.measurements)?d.measurements:[];
  stepContent.innerHTML=`<div class="step-intro"><h3>${safe(currentActivity)} Details</h3><p>Enter project-specific requirements and measurement groups. Quantities are in-place estimates, not automatic procurement or selling prices.</p></div><div class="field-grid">${fields}</div><div class="measurement-panel"><div class="measure-head"><div><h3>Measurement groups</h3><p>One row per distinct size, bar schedule or location. ${safe(spec.unit)} is the calculated unit.</p></div><button type="button" id="addMeasurement" class="secondary-button">+ Add measurement row</button></div><div id="measurementRows"></div><div class="measure-total"><span>Calculated total</span><strong id="measureTotal">—</strong></div><p class="sub-notice">${safe(measurementNotice(currentActivity))}</p></div>`;
 if(isMixActivity()){stepContent.insertAdjacentHTML('beforeend','<div id="mixPanel"></div>');}if(hasDemoResource())stepContent.insertAdjacentHTML('beforeend','<div id="derivedResourcePanel"></div>');attachDetailListeners();renderMeasurementRows();if(isMixActivity())renderMixPanel();if(hasDemoResource())renderDemoResource();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
-function measurementNotice(activity){if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
+function measurementNotice(activity){
+ if(activity==="Ground floor reinforcement")return "Measured area only. For mesh, nominal mass uses published kg/m². For bars, select diameter, bar arrangement and spacing to calculate theoretical lengths and mass. Laps, hooks, cover, openings and wastage are excluded.";if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
 if(activity==='Foundation backfilling and compaction')return 'Calculated compacted in-place volume only. Bulking, shrinkage and imported material quantities require separately verified factors.';
 if(activity==='Ground beam concrete works')return 'Deduct beam intersections only where necessary to avoid double counting. Check overlaps with foundations and column starters.';
 if(activity==='Foundation bed preparation and blinding')return 'Blinding thickness is entered in mm and converted to metres. Enter zero rows if blinding is not specified.';
@@ -2705,7 +2707,12 @@ function demoResourceState(){
  if(!isPositive(v.panelWidth))v.panelWidth="";
  if(!isPositive(v.rollLength))v.rollLength="";
  if(!isPositive(v.rollWidth))v.rollWidth="";
- const allowed=currentActivity==="Ground floor reinforcement"?["kg","t","m²","sheets"]:
+ if(!v.barDiameter)v.barDiameter="";
+ if(!v.spacingAcrossWidth)v.spacingAcrossWidth="";
+ if(!v.spacingAcrossLength)v.spacingAcrossLength="";
+ if(!["two-way","lengthwise","widthwise"].includes(v.barArrangement))v.barArrangement="two-way";
+ const isBars=currentActivity==="Ground floor reinforcement"&&["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(activityData.details.spec);
+ const allowed=currentActivity==="Ground floor reinforcement"?(isBars?["kg","t","m","bars"]:["kg","t","m²","sheets"]):
  currentActivity==="Damp-proof membrane installation"?["m²","yd²","rolls","m","yd","cm","mm"]:
  currentActivity==="Floor insulation and specialised protective layers"?["m²","yd²","panels"]:
  ["m³","yd³"];
@@ -2758,6 +2765,37 @@ function standardMaterialQuantity(){
      note:"Coverage area only. Panel size, layers, cuts and product suitability require review.",material:spec};
  }
  if(name==="Ground floor reinforcement"){
+   if(["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(spec)){
+     const diameter=Number(state.barDiameter),spanAcrossWidth=Number(state.spacingAcrossWidth),
+       spanAcrossLength=Number(state.spacingAcrossLength),arrangement=state.barArrangement;
+     const lengthwise=arrangement==="two-way"||arrangement==="lengthwise";
+     const widthwise=arrangement==="two-way"||arrangement==="widthwise";
+     if(!isPositive(state.barDiameter)||![8,10,12,16,20,25,32].includes(diameter))
+       return {error:"Select bar diameter to calculate reinforcement quantity"};
+     if(lengthwise&&!isPositive(state.spacingAcrossWidth))
+       return {error:"Enter spacing across slab width (mm) for lengthwise bars"};
+     if(widthwise&&!isPositive(state.spacingAcrossLength))
+       return {error:"Enter spacing across slab length (mm) for widthwise bars"};
+     const rows=activityData.details.measurements||[];
+     let totalLength=0,totalBars=0;
+     for(const row of rows){
+       const L=Number(row.length),W=Number(row.width),zones=Number(row.count);
+       if(![L,W,zones].every(n=>Number.isFinite(n)&&n>0))
+         return {error:"Enter positive slab length, width and zone count"};
+       if(lengthwise){
+         const bars=Math.ceil(W/(spanAcrossWidth/1000))+1;
+         totalBars+=bars*zones;totalLength+=bars*L*zones;
+       }
+       if(widthwise){
+         const bars=Math.ceil(L/(spanAcrossLength/1000))+1;
+         totalBars+=bars*zones;totalLength+=bars*W*zones;
+       }
+     }
+     const mass=totalLength*0.006165*diameter*diameter;
+     const quantity=unit==="t"?mass/1000:unit==="m"?totalLength:unit==="bars"?totalBars:mass;
+     return {quantity,unit,base:area,barCount:totalBars,barLength:totalLength,massKg:mass,
+       note:"Preliminary grid takeoff: bar count per run = ceil(perpendicular span ÷ spacing) + 1; total length × 0.006165 × diameter² (mm) gives theoretical kg. No laps, anchorage, bending, cover, cut waste or structural verification.",material:"Reinforcing bar "+diameter+" mm"};
+   }
    const density=MESH_KG_PER_SQM[spec];
    if(!density)return {error:"Selected bar or custom reinforcement requires an engineered bar bending schedule; no mesh mass can be inferred"};
    const mass=area*density;
@@ -2783,9 +2821,15 @@ function renderDemoResource(){
  const host=document.getElementById("derivedResourcePanel");if(!host||!hasDemoResource())return;
  const state=demoResourceState(),name=currentActivity,fields=[];
  const isMem=name==="Damp-proof membrane installation",isIns=name==="Floor insulation and specialised protective layers";
- const choices=name==="Ground floor reinforcement"?["kg","t","m²","sheets"]:
+ const isBar=name==="Ground floor reinforcement"&&["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(activityData.details.spec);
+ const choices=name==="Ground floor reinforcement"?(isBar?["kg","t","m","bars"]:["kg","t","m²","sheets"]):
  isMem?["m²","yd²","rolls","m","yd","cm","mm"]:isIns?["m²","yd²","panels"]:["m³","yd³"];
- if(isMem&&!DPM_ROLLS[activityData.details.spec])fields.push(
+ if(isBar)fields.push(
+ '<div class="field-group"><label>Bar diameter *</label><select data-derived="barDiameter"><option value="">Select diameter</option>'+[8,10,12,16,20,25,32].map(d=>option(String(d)+" mm",(state.barDiameter?String(state.barDiameter)+" mm":""))).join("")+'</select></div>'+
+ '<div class="field-group"><label>Bar arrangement *</label><select data-derived="barArrangement">'+[["two-way","Two-way bars"],["lengthwise","Lengthwise bars only"],["widthwise","Widthwise bars only"]].map(([v,l])=>'<option value="'+v+'" '+(v===state.barArrangement?'selected':'')+'>'+l+'</option>').join("")+'</select></div>'+
+ '<div class="field-group"><label>Spacing across slab width (mm)'+(state.barArrangement==="widthwise"?" (not used)":" *")+'</label><input type="number" min="1" step="any" data-derived="spacingAcrossWidth" value="'+safe(state.spacingAcrossWidth)+'"></div>'+
+ '<div class="field-group"><label>Spacing across slab length (mm)'+(state.barArrangement==="lengthwise"?" (not used)":" *")+'</label><input type="number" min="1" step="any" data-derived="spacingAcrossLength" value="'+safe(state.spacingAcrossLength)+'"></div>');
+  if(isMem&&!DPM_ROLLS[activityData.details.spec])fields.push(
  '<div class="field-group"><label>Membrane roll width (m)</label><input data-derived="rollWidth" type="number" min="0.001" step="any" value="'+safe(state.rollWidth)+'"></div>'+
  '<div class="field-group"><label>Membrane roll length (m)</label><input data-derived="rollLength" type="number" min="0.001" step="any" value="'+safe(state.rollLength)+'"></div>');
  if(isIns)fields.push(
@@ -2799,7 +2843,7 @@ function renderDemoResource(){
  '<p class="sub-notice" id="demoMethodNote"></p></div>';
  host.querySelector("#demoUnit").addEventListener("change",e=>{state.unit=e.target.value;activityData.confirmed=false;renderDemoResource();saveProjectData();});
  host.querySelectorAll("[data-derived]").forEach(input=>input.addEventListener("input",e=>{
-   state[e.target.dataset.derived]=e.target.value;activityData.confirmed=false;updateDemoResource();saveProjectData();
+   state[e.target.dataset.derived]=e.target.dataset.derived==="barDiameter"?e.target.value.replace(" mm",""):e.target.value;activityData.confirmed=false;if(e.target.dataset.derived==="barArrangement")renderDemoResource();else updateDemoResource();saveProjectData();
  }));
  updateDemoResource();
 }
@@ -2807,7 +2851,7 @@ function updateDemoResource(){
  if(!hasDemoResource())return;
  const result=standardMaterialQuantity(),total=document.getElementById("demoTotal"),note=document.getElementById("demoMethodNote");
  if(total)total.textContent=result.error?"—":formatMeasure(result.quantity)+" "+result.unit;
- if(note)note.textContent=result.error?result.error:result.note;
+ if(note)note.textContent=result.error?result.error:(result.barCount!==undefined?"Bars: "+formatMeasure(result.barCount)+" · Total bar length: "+formatMeasure(result.barLength)+" m · Theoretical mass: "+formatMeasure(result.massKg)+" kg. ":"")+result.note;
  const spec=document.getElementById("demoSpec");
  if(spec)spec.textContent=activityData.details.spec||"Not yet specified";
  syncDemoResource();
