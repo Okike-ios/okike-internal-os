@@ -137,7 +137,7 @@
  renderSettings=function(){
   const html=previousSettings();
   const card='<section class="card card-pad" style="max-width:750px;margin-top:15px"><h3>Demo Data</h3><p class="note">Start a new local demonstration. This erases the browser\'s OKIKE demo projects, enquiries, requisitions, invoices, payments, bank imports and quotation drafts. It does not delete deployed source code or other users\' browsers. Appearance settings are retained.</p><button class="btn" data-reset-demo style="border:1px solid #C96A32;color:var(--orange)">Reset Demo</button></section>';
-  const closing='</div></div>';const i=html.lastIndexOf(closing);return i>=0?html.slice(0,i)+card+html.slice(i):html+card;
+  const closing='</div></div>';const i=html.lastIndexOf(closing);return i>=0?html.slice(0,i)+'</div>'+card+'</div>':html+card;
  };
  function emptyAdmin(){return {version:1,clients:[],enquiries:[],projects:[],tasks:[]}}
  function emptyFinance(){return {version:1,role:'Accounting',requests:[],invoices:[],payments:[],bank:[],journal:[],audit:[],notifications:[],opening:null,projectMeta:{},workOrders:[]}}
