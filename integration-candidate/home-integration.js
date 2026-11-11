@@ -13,8 +13,8 @@
  }
  function statusFor(p){
   if(p.cancelled)return 'Cancelled';
+  if(p.status==='Completed'||p.completed===true)return 'Completed';
   if(p.mobilised)return 'Active';
-  if((p.milestones||[]).length&&p.milestones.every(m=>m.status==='Verified'))return 'Completed';
   return 'Planning';
  }
  function phaseFor(p){
@@ -35,7 +35,7 @@
  }
  function dueMilestones(p){
   return (p.milestones||[]).map(m=>{
-   const due=dateOnly(m.dueDate||m.due||m.date);
+   const due=dateOnly(m.dueDate||m.due||m.targetDate);
    if(!due||['Verified','Completed','Cancelled'].includes(m.status))return null;
    const days=Math.ceil((due.getTime()-todayStart().getTime())/86400000);
    return {name:m.name||'Milestone',due,days,projectId:p.id,projectName:p.name,status:m.status||'Planned'};
@@ -109,7 +109,11 @@
  const originalLibrary=renderLibrary;
  renderLibrary=function(){return originalLibrary().replace('<button class="btn primary" data-create="Home">＋ New Project</button>','');};
  const originalProject=renderProject;
- renderProject=function(){return originalProject().replace(/null% progress/g,'Progress not yet recorded');};
+ renderProject=function(){
+  const project=state.projects.find(p=>p.id===route.projectId);
+  const html=originalProject();
+  return project?.verifiedProgress===null?html.replace('0% progress','Progress not yet recorded'):html;
+ };
  activeRows=function(){
   return state.projects.filter(p=>p.status==='Active').map(p=>
    '<tr><td>'+escapeHtml(p.id)+'</td><td><strong>'+escapeHtml(p.name)+'</strong><small>'+escapeHtml(p.description)+'</small></td>'
