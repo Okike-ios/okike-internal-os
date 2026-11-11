@@ -162,7 +162,7 @@ const subMeasurements = {
 function num(value){const n=Number(value);return value===""||value==null||!Number.isFinite(n)||n<0?0:n;}
 
 const groundFloorActivities=["Ground floor preparation and level verification","Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement","Ground floor concrete slab","Slab construction joints, edges and finishing","Concrete curing, inspection and testing"];
-const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular material specification","text",true],["method","Laying and compaction method"]],"Sand blinding and surface levelling":[["spec","Sand / blinding specification","select",true,["Sharp sand","Fine sand","Washed sand","Screened sand","Other (describe in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (describe in notes)"]],["notes","Alternative specification or method notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","text",true],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","text",true],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","text",true],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification","select",true,["Construction joint","Saw-cut control joint","Expansion / isolation joint","Formed joint","Other — describe in notes"]],["finish","Required slab finish","select",true,["Power-floated","Steel-trowelled","Broom finish","Roughened / keyed","Other — describe in notes"]],["notes","Additional joint / finish specification","textarea"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
+const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular sub-base material","select",true,["Graded crushed stone","Crushed granite aggregate","Graded natural gravel","Lateritic granular fill","Other (specify in notes)"]],["method","Laying and compaction method"],["notes","Source and grading / approved material notes","textarea"]],"Sand blinding and surface levelling":[["spec","Sand / blinding material","select",true,["Sharp sand","Washed sand","Fine sand","Screened sand","Other (specify in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (specify in notes)"]],["notes","Material / levelling notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","select",true,["Polyethylene DPM 250 micron (4 × 25 m roll)","Polyethylene DPM 300 micron (4 × 25 m roll)","Polyethylene DPM 500 micron (4 × 12.5 m roll)","Other membrane / roll size"]],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","select",true,["Expanded polystyrene (EPS) board","Extruded polystyrene (XPS) board","Polyisocyanurate (PIR) board","Rigid mineral wool board","Other / proprietary protection"]],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","select",true,["A142 welded mesh (2.22 kg/m²)","A193 welded mesh (3.02 kg/m²)","A252 welded mesh (3.95 kg/m²)","A393 welded mesh (6.16 kg/m²)","Reinforcing bars — bar schedule required","Other / engineered reinforcement"]],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification","select",true,["Construction joint","Saw-cut control joint","Expansion / isolation joint","Formed joint","Other — describe in notes"]],["finish","Required slab finish","select",true,["Power-floated","Steel-trowelled","Broom finish","Roughened / keyed","Other — describe in notes"]],["notes","Additional joint / finish specification","textarea"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
 const groundFloorMeasures={"Ground floor preparation and level verification":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Filling and raising of floor levels":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Filling compaction and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Hardcore / granular sub-base installation":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Sand blinding and surface levelling":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Damp-proof membrane installation":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Floor insulation and specialised protective layers":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor reinforcement":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor concrete slab":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Slab construction joints, edges and finishing":{"unit":"m","columns":[["length","Total length (m)","number"],["count","Repeats","number"]],"formula":"length"},"Concrete curing, inspection and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"}};
 for(const [n,f] of Object.entries(groundFloorFields))substructureFields[n]=f;
 for(const [n,spec] of Object.entries(groundFloorMeasures)){
@@ -2671,119 +2671,144 @@ function renderMixPanel(){
 }
 
 
-/* OK-QNB-004: Provisional resource quantities. Rules are illustrative only.
-   Measurement results are physical quantities; this is an independent preview layer. */
-const DEMO_RESOURCE_ACTIVITIES=["Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement"];
-const DEMO_RESOURCE_UNITS={
- "Hardcore / granular sub-base installation":["m³","yd³"],
- "Sand blinding and surface levelling":["m³","yd³"],
- "Damp-proof membrane installation":["m²","yd²","cm²","mm²","m","yd","cm","mm"],
- "Floor insulation and specialised protective layers":["m²","yd²","cm²","mm²"],
- "Ground floor reinforcement":["m²","yd²","cm²","mm²"]
+/* OK-QNB-005 — Source-grounded quantity methods.
+ * Sources: RICS NRM2, BS4483 mesh tables (Midland Rapid, Rainham);
+ * Visqueen DPM product roll dimensions. Physical and theoretical
+ * minimum packaging are not automatically supplier order quantities.
+ */
+const VERIFIED_RESOURCE_ACTIVITIES=[
+ "Hardcore / granular sub-base installation",
+ "Sand blinding and surface levelling",
+ "Damp-proof membrane installation",
+ "Floor insulation and specialised protective layers",
+ "Ground floor reinforcement"
+];
+const MESH_KG_PER_SQM={
+ "A142 welded mesh (2.22 kg/m²)":2.22,
+ "A193 welded mesh (3.02 kg/m²)":3.02,
+ "A252 welded mesh (3.95 kg/m²)":3.95,
+ "A393 welded mesh (6.16 kg/m²)":6.16
 };
-function hasDemoResource(){return isGroundFloor()&&DEMO_RESOURCE_ACTIVITIES.includes(currentActivity);}
+const DPM_ROLLS={
+ "Polyethylene DPM 250 micron (4 × 25 m roll)":{width:4,length:25},
+ "Polyethylene DPM 300 micron (4 × 25 m roll)":{width:4,length:25},
+ "Polyethylene DPM 500 micron (4 × 12.5 m roll)":{width:4,length:12.5}
+};
+function hasDemoResource(){return isGroundFloor()&&VERIFIED_RESOURCE_ACTIVITIES.includes(currentActivity);}
+function isPositive(x){return String(x??"").trim()!==""&&Number.isFinite(Number(x))&&Number(x)>0;}
 function demoResourceState(){
- const d=activityData.details;
- if(!d.resourceDemo||typeof d.resourceDemo!=="object")d.resourceDemo={};
- const x=d.resourceDemo;
- const units=DEMO_RESOURCE_UNITS[currentActivity];
- if(!units.includes(x.unit))x.unit=units[0];
- if(x.factor===undefined)x.factor="1";
- if(x.rollWidth===undefined)x.rollWidth="";
- return x;
+ const d=activityData.details;d.resourceDemo ||= {};
+ const v=d.resourceDemo;
+ // The previous editable demonstration factor is intentionally ignored.
+ // Keep legacy data for non-destructive storage compatibility.
+ if(!isPositive(v.panelLength))v.panelLength="";
+ if(!isPositive(v.panelWidth))v.panelWidth="";
+ if(!isPositive(v.rollLength))v.rollLength="";
+ if(!isPositive(v.rollWidth))v.rollWidth="";
+ const allowed=currentActivity==="Ground floor reinforcement"?["kg","t","m²","sheets"]:
+ currentActivity==="Damp-proof membrane installation"?["m²","yd²","rolls","m","yd","cm","mm"]:
+ currentActivity==="Floor insulation and specialised protective layers"?["m²","yd²","panels"]:
+ ["m³","yd³"];
+ if(!allowed.includes(v.unit))v.unit=allowed[0];
+ return v;
 }
-function demoResourceCalc(){
- if(!hasDemoResource())return null;
- const rows=activityData.details.measurements||[],spec=subMeasurements[currentActivity],config=demoResourceState();
- if(!rows.length||rows.some(row=>calcMeasured(spec,row)===null))return null;
- if(!String(activityData.details.spec||"").trim())return null;
- const base=rows.reduce((sum,row)=>sum+calcMeasured(spec,row),0);
- const factor=Number(config.factor);
- if(String(config.factor).trim()===""||!Number.isFinite(factor)||factor<=0)return null;
- const nominal=base*factor;
- let converted=nominal,unit=config.unit;
- if(unit==="yd³")converted=nominal/0.764554857984;
- if(unit==="yd²")converted=nominal/0.83612736;
- if(unit==="cm²")converted=nominal*10000;
- if(unit==="mm²")converted=nominal*1000000;
- if(["m","yd","cm","mm"].includes(unit)){
-   const width=Number(config.rollWidth);
-   if(String(config.rollWidth).trim()===""||!Number.isFinite(width)||width<=0)return null;
-   converted=nominal/width;
-   if(unit==="yd")converted/=0.9144;
-   if(unit==="cm")converted*=100;
-   if(unit==="mm")converted*=1000;
+function baseMeasuredAmount(){
+ const rows=activityData.details.measurements||[],spec=subMeasurements[currentActivity];
+ if(!rows.length||rows.some(r=>calcMeasured(spec,r)===null))return null;
+ return rows.reduce((sum,r)=>sum+calcMeasured(spec,r),0);
+}
+function standardMaterialQuantity(){
+ if(!hasDemoResource())return {error:"Activity not supported"};
+ const area=baseMeasuredAmount(),d=activityData.details,state=demoResourceState();
+ if(area===null)return {error:"Enter complete measurement rows"};
+ const spec=String(d.spec||"").trim();
+ if(!spec)return {error:"Select material specification"};
+ const name=currentActivity,unit=state.unit;
+ if(name==="Hardcore / granular sub-base installation"||name==="Sand blinding and surface levelling"){
+   return {quantity:unit==="yd³"?area/0.764554857984:area,unit,
+     note:"Compacted/in-place layer volume only; loose supply and tonnes need verified density and compaction data.",base:area,
+     material:name.startsWith("Hardcore")?spec:spec};
  }
- return {base,quantity:converted,unit,factor};
+ if(name==="Damp-proof membrane installation"){
+   const product=DPM_ROLLS[spec];
+   const rollWidth=product?.width||Number(state.rollWidth),rollLength=product?.length||Number(state.rollLength);
+   const hasRoll=isPositive(rollWidth)&&isPositive(rollLength);
+   if(["rolls","m","yd","cm","mm"].includes(unit)&&!hasRoll)
+     return {error:"Enter the usable roll width and length for this specification"};
+   const rollArea=rollWidth*rollLength;
+   if(unit==="rolls")
+     return {quantity:Math.ceil(area/rollArea),unit,base:area,
+       note:"Theoretical minimum rolls by gross coverage only. Laps, upstands, cuts and layout require a separate plan.",material:spec};
+   if(["m","yd","cm","mm"].includes(unit)){
+     const length=area/rollWidth;
+     return {quantity:unit==="yd"?length/0.9144:unit==="cm"?length*100:unit==="mm"?length*1000:length,
+       unit,base:area,note:"Equivalent membrane length at selected usable roll width; gross area, no lap allowance.",material:spec};
+   }
+   return {quantity:unit==="yd²"?area/0.83612736:area,unit,base:area,
+     note:"Net membrane coverage; lap, upstand, cut loss and roll layout are not yet measured.",material:spec};
+ }
+ if(name==="Floor insulation and specialised protective layers"){
+   if(unit==="panels"){
+     if(!isPositive(state.panelLength)||!isPositive(state.panelWidth))
+       return {error:"Enter panel length and width in metres to calculate panel count"};
+     return {quantity:Math.ceil(area/(Number(state.panelLength)*Number(state.panelWidth))),unit,base:area,
+       note:"Theoretical minimum panels from gross board area; board layout and cuts require review.",material:spec};
+   }
+   return {quantity:unit==="yd²"?area/0.83612736:area,unit,base:area,
+     note:"Coverage area only. Panel size, layers, cuts and product suitability require review.",material:spec};
+ }
+ if(name==="Ground floor reinforcement"){
+   const density=MESH_KG_PER_SQM[spec];
+   if(!density)return {error:"Selected bar or custom reinforcement requires an engineered bar bending schedule; no mesh mass can be inferred"};
+   const mass=area*density;
+   if(unit==="sheets"){
+     return {quantity:Math.ceil(area/(4.8*2.4)),unit,base:area,
+       note:"Theoretical minimum 4.8 × 2.4 m mesh sheets, excluding laps, cuts and layout; verify supplier sheet size.",material:spec};
+   }
+   return {quantity:unit==="m²"?area:unit==="t"?mass/1000:mass,unit,base:area,
+     note:"Nominal mass = coverage m² × published mesh kg/m². Laps, waste and procurement quantity not included.",material:spec};
+ }
+ return {error:"Unsupported material type"};
 }
 function syncDemoResource(){
  if(!hasDemoResource())return;
- const key="okike-placeholder-floor-resource";
- const existing=activityData.materials||[];
- const past=existing.find(row=>row.source===key);
- const manual=existing.filter(row=>row.source!==key);
- const calc=demoResourceCalc();
- if(!calc){activityData.materials=manual;return;}
- const label=activityData.details.spec||({})[currentActivity]||currentActivity;
- const generated={
-    name:label,quantity:String(Number(calc.quantity.toFixed(6))),unit:calc.unit,
-    arrangement:"Purchased",rate:past?.rate||"",
-    source:key,formulaStatus:"UNVERIFIED_PLACEHOLDER",materialKey:currentActivity
- };
- activityData.materials=[generated,...manual];
+ const tag="okike-placeholder-floor-resource",existing=activityData.materials||[],old=existing.find(r=>r.source===tag);
+ const keep=existing.filter(r=>r.source!==tag),r=standardMaterialQuantity();
+ if(r.error){activityData.materials=keep;return;}
+ activityData.materials=[{name:r.material,quantity:String(Number(r.quantity.toFixed(6))),unit:r.unit,
+ arrangement:"Purchased",rate:old?.rate||"",source:tag,formulaStatus:"MEASURED_REFERENCE_METHOD",
+ materialKey:currentActivity},...keep];
 }
 function renderDemoResource(){
- const box=document.getElementById("derivedResourcePanel");
- if(!box||!hasDemoResource())return;
- const state=demoResourceState(),spec=activityData.details.spec||"Not yet specified";
- box.innerHTML='<div class="measurement-panel demo-resource-panel"><h3>Provisional material quantity</h3><p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> This demonstrates the future calculator only. Do not use for purchase, quotation or engineering. Default factor is 1.0 and is not an approved procurement allowance.</p><p class="demo-spec-label">Specification: <strong id="demoSpec">'+safe(spec)+'</strong></p><div class="field-grid"><div class="field-group"><label>Demonstration factor</label><input id="demoFactor" type="number" min="0.001" step="any" value="'+safe(state.factor)+'"></div><div class="field-group"><label>Output unit</label><select id="demoUnit">'+DEMO_RESOURCE_UNITS[currentActivity].map(u=>option(u,state.unit)).join("")+'</select></div></div><div class="field-group" id="demoWidthGroup" '+(!["m","yd","cm","mm"].includes(state.unit)?"hidden":"")+'><label>Usable membrane roll width (m) — required for linear units</label><input id="demoRollWidth" type="number" min="0.001" step="any" value="'+safe(state.rollWidth)+'"></div><div class="measure-total"><span>Placeholder material requirement</span><strong id="demoTotal">—</strong></div><p class="sub-notice">Quantity = net measured '+safe(subMeasurements[currentActivity].unit)+' × demonstration factor. For membrane roll length: covered area ÷ usable roll width. Overlaps, wastage, mesh schedules and packaging are not included. Mesh/bar reinforcement is displayed as coverage area only, not bar mass.</p></div>';
- const update=()=>{activityData.confirmed=false;updateDemoResource();saveProjectData();};
- box.querySelector("#demoFactor").oninput=e=>{state.factor=e.target.value;update();};
- box.querySelector("#demoUnit").onchange=e=>{state.unit=e.target.value;renderDemoResource();update();};
- box.querySelector("#demoRollWidth")?.addEventListener("input",e=>{state.rollWidth=e.target.value;update();});
+ const host=document.getElementById("derivedResourcePanel");if(!host||!hasDemoResource())return;
+ const state=demoResourceState(),name=currentActivity,fields=[];
+ const isMem=name==="Damp-proof membrane installation",isIns=name==="Floor insulation and specialised protective layers";
+ const choices=name==="Ground floor reinforcement"?["kg","t","m²","sheets"]:
+ isMem?["m²","yd²","rolls","m","yd","cm","mm"]:isIns?["m²","yd²","panels"]:["m³","yd³"];
+ if(isMem&&!DPM_ROLLS[activityData.details.spec])fields.push(
+ '<div class="field-group"><label>Membrane roll width (m)</label><input data-derived="rollWidth" type="number" min="0.001" step="any" value="'+safe(state.rollWidth)+'"></div>'+
+ '<div class="field-group"><label>Membrane roll length (m)</label><input data-derived="rollLength" type="number" min="0.001" step="any" value="'+safe(state.rollLength)+'"></div>');
+ if(isIns)fields.push(
+ '<div class="field-group"><label>Selected panel length (m)</label><input data-derived="panelLength" type="number" min="0.001" step="any" value="'+safe(state.panelLength)+'"></div>'+
+ '<div class="field-group"><label>Selected panel width (m)</label><input data-derived="panelWidth" type="number" min="0.001" step="any" value="'+safe(state.panelWidth)+'"></div>');
+ host.innerHTML='<div class="measurement-panel demo-resource-panel"><h3>Calculated material requirement</h3>'+
+ '<p class="sub-notice">Measured quantity and published material data only. This is a preliminary quantity takeoff, not a validated supplier order or structural design.</p>'+
+ '<p class="demo-spec-label">Specification: <strong id="demoSpec">'+safe(activityData.details.spec||"Not yet specified")+'</strong></p>'+
+ '<div class="field-grid"><div class="field-group"><label>Output unit</label><select id="demoUnit">'+choices.map(u=>option(u,state.unit)).join("")+'</select></div>'+fields.join("")+'</div>'+
+ '<div class="measure-total"><span>Calculated material quantity</span><strong id="demoTotal">—</strong></div>'+
+ '<p class="sub-notice" id="demoMethodNote"></p></div>';
+ host.querySelector("#demoUnit").addEventListener("change",e=>{state.unit=e.target.value;activityData.confirmed=false;renderDemoResource();saveProjectData();});
+ host.querySelectorAll("[data-derived]").forEach(input=>input.addEventListener("input",e=>{
+   state[e.target.dataset.derived]=e.target.value;activityData.confirmed=false;updateDemoResource();saveProjectData();
+ }));
  updateDemoResource();
 }
 function updateDemoResource(){
  if(!hasDemoResource())return;
- const calc=demoResourceCalc();
- const output=document.getElementById("demoTotal");
- if(output)output.textContent=calc?formatMeasure(calc.quantity)+" "+calc.unit:"— (complete measurements and unit requirements)";
- const name=document.getElementById("demoSpec");
- if(name)name.textContent=activityData.details.spec||"Not yet specified";
+ const result=standardMaterialQuantity(),total=document.getElementById("demoTotal"),note=document.getElementById("demoMethodNote");
+ if(total)total.textContent=result.error?"—":formatMeasure(result.quantity)+" "+result.unit;
+ if(note)note.textContent=result.error?result.error:result.note;
+ const spec=document.getElementById("demoSpec");
+ if(spec)spec.textContent=activityData.details.spec||"Not yet specified";
  syncDemoResource();
 }
-
-// Run the preview only after all demonstration constants and functions are initialized.
-renderStages();
-openStage("Ground Floor Construction");
-openActivity("Ground floor concrete slab");
-
-
-/* OK-QNB-004 preview: single delegated row handler plus visible runtime diagnostics.
-   Deliberately scoped to this isolated preview, not the approved quotation application. */
-function openPreviewActivity(name) {
-  try {
-    if (!groundFloorActivities.includes(name)) return;
-    openActivity(name);
-    if (wizardView.hidden) throw new Error("Work Details did not become visible.");
-  } catch (error) {
-    console.error("OKIKE activity opening failed:", error);
-    const warning = document.getElementById("previewActivityError");
-    if (warning) {
-      warning.hidden = false;
-      warning.textContent = "Unable to open activity: " + (error && error.message ? error.message : String(error));
-    }
-    showToast("Activity could not open. See the error message above.");
-  }
-}
-activityList.addEventListener("click", event => {
-  const row = event.target.closest(".activity-row[data-activity]");
-  if (row && activityList.contains(row)) openPreviewActivity(row.dataset.activity);
-});
-activityList.addEventListener("keydown", event => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  const row = event.target.closest(".activity-row[data-activity]");
-  if (!row || !activityList.contains(row)) return;
-  event.preventDefault();
-  openPreviewActivity(row.dataset.activity);
-});
