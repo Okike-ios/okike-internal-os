@@ -10,6 +10,39 @@
   await page.locator('[data-nav="'+section+'"]').first().click();
   await page.waitForTimeout(450);
  }
+ async function checkSingleScrollbar(section){
+  const frame=page.frameLocator('#okikeDepartmentFrame');
+  await frame.locator('.heading').first().waitFor({timeout:12000});
+  await page.waitForTimeout(240);
+  const dims=await page.locator('#okikeDepartmentFrame').evaluate(el=>{
+   const inner=el.contentDocument;
+   return {
+    frameHeight:el.getBoundingClientRect().height,
+    bodyScroll:inner.body.scrollHeight,
+    docScroll:inner.documentElement.scrollHeight,
+    overflow:getComputedStyle(inner.body).overflowY,
+    parentScrollable:document.documentElement.scrollHeight>innerHeight+3
+   };
+  });
+  assert(dims.overflow==='hidden',section+' still has an independent vertical scrollbar');
+  assert(dims.frameHeight+5>=Math.max(dims.bodyScroll,dims.docScroll),section+' iframe is shorter than its content: '+JSON.stringify(dims));
+ }
+ async function checkSharedProjects(section){
+  const frame=page.frameLocator('#okikeDepartmentFrame');
+  const card=frame.locator('.department-metric-link');
+  await card.waitFor({timeout:12000});
+  const label=card.locator('.metric-label'),number=card.locator('strong');
+  const l=await label.boundingBox(),n=await number.boundingBox();
+  assert(l&&n&&n.y>=l.y+l.height-1,section+' Shared Projects count must appear below label');
+  const assigned=frame.locator('.department-metric').first();
+  const a=await assigned.locator('.metric-label').boundingBox();
+  const b=await assigned.locator('strong').boundingBox();
+  assert(a&&b&&b.y>=a.y+a.height-1,section+' Assigned Actions number must appear below label');
+  assert(await card.getAttribute('data-page')==='Projects',section+' Shared Projects is not linked to project list');
+  await card.click();
+  await frame.locator('.heading').first().waitFor({timeout:12000});
+  assert((await frame.locator('.heading').first().innerText()).includes('Project library'),section+' Shared Projects did not open project library');
+ }
  try{
   await page.goto(origin,{waitUntil:'domcontentloaded'});
   await page.waitForTimeout(500);
@@ -21,6 +54,7 @@
   await admin.locator('.heading').first().waitFor({timeout:12000});
   assert(await admin.locator('#role').count()===0,'Embedded testing role selector still displayed');
   assert((await admin.locator('.heading').first().innerText()).includes('Your workspace'),'Administration workspace did not load');
+  await checkSingleScrollbar('Administration');
   const homeAfterAdmin=await page.evaluate(()=>{
     const data=JSON.parse(localStorage.getItem('okike_admin_prototype_v1'));
     return {projects:data.projects.length,clients:data.clients.length};
@@ -51,6 +85,8 @@
   let design=page.frameLocator('#okikeDepartmentFrame');
   await design.locator('.heading').first().waitFor({timeout:12000});
   assert((await design.locator('.heading').first().innerText()).includes('Design workspace'),'Design workspace is not scoped');
+  await checkSingleScrollbar('Design');
+  await checkSharedProjects('Design');
   assert(!(await design.locator('.heading').first().innerText()).includes('New enquiry'),'Design sees Administration enquiry prompt');
   await page.locator('[data-page="Design Projects"][data-section="Design"]').first().click();
   await design.locator('.heading').first().waitFor({timeout:12000});
@@ -59,7 +95,11 @@
   let media=page.frameLocator('#okikeDepartmentFrame');
   await media.locator('.heading').first().waitFor({timeout:12000});
   assert((await media.locator('.heading').first().innerText()).includes('Media workspace'),'Media workspace not scoped');
+  await checkSingleScrollbar('Media');
+  await checkSharedProjects('Media');
   await openSection('Project Management');
+  await checkSingleScrollbar('Project Management');
+  await checkSharedProjects('Project Management');
   await page.locator('[data-page="Quotations"][data-section="Project Management"]').first().click();
   assert(await page.locator('[data-service="New Build"]').count()===1,'New Build quote service missing');
   await page.locator('[data-service="New Build"]').first().click();
@@ -97,7 +137,7 @@
   await openSection('Home');
   assert(await page.evaluate(()=>state.projects.length)===0,'Home repopulated sample projects after reset');
   assert(errors.length===0,'Browser errors: '+errors.join('; '));
-  console.log('PASS: Department routing, quotation preservation, role-selector removal, finance ownership, cross-department read models.');
+  console.log('PASS: One department scrollbar, stacked metrics, Shared Projects navigation, department routing, Home, theme, reset and Finance ownership.');
  }finally{
   await browser.close();
  }

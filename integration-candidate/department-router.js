@@ -101,6 +101,17 @@
  };
  window.addEventListener('message',event=>{
   if(event.origin!==location.origin)return;
+  if(event.data?.type==='okike:department-height'){
+   const frame=document.getElementById('okikeDepartmentFrame');
+   if(!frame||event.source!==frame.contentWindow)return;
+   const height=Number(event.data.height);
+   // Resize only the matching same-origin departmental frame; one outer scrollbar remains.
+   if(Number.isFinite(height)&&height>=160&&height<=100000){
+    const target=Math.ceil(height+2);
+    if(Math.abs(frame.getBoundingClientRect().height-target)>3)frame.style.height=target+'px';
+   }
+   return;
+  }
   if(event.data?.type==='okike:administration-updated'){
     try{
       const saved=JSON.parse(localStorage.getItem('okike_internal_os_demo_v1'));

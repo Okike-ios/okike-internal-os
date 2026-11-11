@@ -47,3 +47,70 @@ body.department-contained.dark small{color:var(--muted)}
 body.department-contained.dark .modal-backdrop{background:rgba(0,0,0,.68)}
 body.department-contained.dark .status,
 body.department-contained.dark .badge{border-color:var(--line)}
+
+/* v0.4 — Single outer workspace scrollbar; iframe height follows measured content. */
+html:has(body.department-contained),
+body.department-contained {
+  height:auto!important;
+  min-height:0!important;
+  overflow-x:hidden!important;
+  overflow-y:hidden!important;
+}
+body.department-contained .main{
+  min-height:0!important;
+  height:auto!important;
+}
+body.department-contained #app{
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+body.department-contained .content{
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+/* Consistent stacked department metrics, matching Administration's existing cards. */
+body.department-contained .department-metrics .department-metric{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  min-height:132px;
+  width:100%;
+  float:none;
+  text-align:left;
+  padding:20px;
+}
+body.department-contained .department-metric .metric-label{
+  display:block;
+  float:none!important;
+  margin:0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+  font-weight:500;
+}
+body.department-contained .department-metric strong{
+  display:block;
+  font-size:30px;
+  font-weight:500;
+  line-height:1.1;
+  color:var(--ink);
+}
+body.department-contained .department-metric-link{cursor:pointer}
+body.department-contained .department-metric-link:hover{
+  border-color:var(--orange)!important;
+  box-shadow:0 2px 12px rgba(201,106,50,.13);
+}
+body.department-contained .department-metric-link:focus-visible{
+  outline:2px solid var(--orange);
+  outline-offset:3px;
+}
+@media(max-width:760px){
+  body.department-contained .department-metrics .department-metric{
+    min-height:118px;
+    padding:15px;
+  }
+}
