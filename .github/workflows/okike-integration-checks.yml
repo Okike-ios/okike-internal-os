@@ -8,6 +8,9 @@ on:
     paths:
       - 'integration-candidate/**'
       - '.github/workflows/okike-integration-checks.yml'
+concurrency:
+  group: okike-department-checks-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   static-and-browser:
     runs-on: ubuntu-24.04
