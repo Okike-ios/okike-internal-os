@@ -21,6 +21,28 @@
   await admin.locator('.heading').first().waitFor({timeout:12000});
   assert(await admin.locator('#role').count()===0,'Embedded testing role selector still displayed');
   assert((await admin.locator('.heading').first().innerText()).includes('Your workspace'),'Administration workspace did not load');
+  const homeAfterAdmin=await page.evaluate(()=>{
+    const data=JSON.parse(localStorage.getItem('okike_admin_prototype_v1'));
+    return {projects:data.projects.length,clients:data.clients.length};
+  });
+  await openSection('Home');
+  const homeProjection=await page.evaluate(()=>({projects:state.projects.length,clients:state.clients.length,active:state.projects.filter(p=>p.status==='Active').length,seedProjects:state.projects.some(p=>p.name==='DUSL Doors')}));
+  assert(homeProjection.projects===homeAfterAdmin.projects,'Home project list differs from Administration');
+  assert(homeProjection.clients===homeAfterAdmin.clients,'Home clients differ from Administration');
+  assert(!homeProjection.seedProjects,'Home retained unrelated legacy seed projects');
+  assert(await page.locator('[data-create]').count()===0,'Home still exposes direct project creation');
+  await openSection('Settings');
+  await page.locator('[data-setting="theme"][data-value="dark"]').click();
+  await openSection('Administration');
+  await page.frameLocator('#okikeDepartmentFrame').locator('body.dark').waitFor({timeout:12000});
+  const darkBackground=await page.frameLocator('#okikeDepartmentFrame').locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
+  assert(darkBackground!=='rgb(245, 243, 237)'&&darkBackground!=='rgb(255, 255, 255)','Administration retained a light background under dark mode');
+  await openSection('Design');
+  await page.frameLocator('#okikeDepartmentFrame').locator('body.dark').waitFor({timeout:12000});
+  await openSection('Settings');
+  await page.locator('[data-setting="theme"][data-value="light"]').click();
+  await openSection('Administration');
+  await admin.locator('.heading').first().waitFor({timeout:12000});
   await page.locator('[data-page="Invoice Dispatch"][data-section="Administration"]').first().click();
   assert(await page.locator('.accounting').count()===1,'Administration invoice dispatch missing');
   assert(await page.locator('#okikeDepartmentFrame').count()===0,'Finance should not be embedded inside Administration');
@@ -58,6 +80,20 @@
   assert(snapshot.meta.quotation===912345,'Finance does not read authoritative accepted quotation');
   assert(snapshot.meta.sow==='Client approved','Finance does not read authoritative SOW state');
   assert(snapshot.meta.cycle===2,'Finance job cycle did not sync');
+  await openSection('Settings');
+  await page.locator('[data-reset-demo]').click();
+  assert(await page.locator('[data-confirm-reset]').count()===1,'Reset Demo confirmation missing');
+  await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.locator('[data-confirm-reset]').click()]);
+  const empty=await page.evaluate(()=>{
+    const a=JSON.parse(localStorage.getItem('okike_admin_prototype_v1'));
+    const f=JSON.parse(localStorage.getItem('okike_accounting_v1'));
+    return {a:a.projects.length,enquiries:a.enquiries.length,finance:f.requests.length,home:state.projects.length};
+  });
+  assert(empty.a===0&&empty.enquiries===0&&empty.finance===0&&empty.home===0,'Reset Demo did not clear all test records');
+  await openSection('Administration');
+  assert(await page.frameLocator('#okikeDepartmentFrame').evaluate(()=>state.projects.length)===0,'Administration re-seeded old data after reset');
+  await openSection('Home');
+  assert(await page.evaluate(()=>state.projects.length)===0,'Home repopulated sample projects after reset');
   assert(errors.length===0,'Browser errors: '+errors.join('; '));
   console.log('PASS: Department routing, quotation preservation, role-selector removal, finance ownership, cross-department read models.');
  }finally{
