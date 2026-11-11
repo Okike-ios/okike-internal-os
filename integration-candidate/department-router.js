@@ -1,6 +1,6 @@
 (function departmentRouter(){
  'use strict';
- const ADMIN_PAGES=['My Workspace','My Tasks','Team Workspace','Enquiries & Assessment','Clients','Projects','Company Documents','Messages','Policies & SOPs','Reporting Structure','Staff Directory'];
+ const ADMIN_PAGES=['My Workspace','My Tasks','Team Workspace','Enquiries & Assessment','Clients','Projects','Purchase Requisitions','Invoice Dispatch','Company Documents','Messages','Policies & SOPs','Reporting Structure','Staff Directory'];
  const PM_PAGES=['PM Dashboard','Projects','Quotations','Project Tracker','SOW & Mobilisation','Schedules & Milestones','Purchase Requisitions','Work Orders','Site Inspections','Progress Reports','Client Records'];
  const DESIGN_PAGES=['Design Dashboard','Design Projects','Client Briefs','Design Revisions','Working Drawings','3D Visualizations','Mood Boards','Approved Designs'];
  const MEDIA_PAGES=['Media Dashboard','Media Assignments','Project Photography','Media Library','Content Calendar','Social Media','Brand Assets'];
