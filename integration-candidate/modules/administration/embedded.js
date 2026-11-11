@@ -54,6 +54,36 @@
   }
  }
  try{syncRecords()}catch(e){warn(e.message)}
+ const nativeProjectPage=projectPage;
+ const nativeCancellationPanel=cancellationPanel;
+ cancellationPanel=function(p){return ['Design','Media'].includes(currentDepartment)?'':nativeCancellationPanel(p)};
+ projectPage=function(){
+  const project=currentProject();
+  if(!project)return '';
+  if(currentDepartment==='Design'){
+   return heading(project.name,project.id+' · Design brief and revisions','<button class="btn" data-page="Projects">← Design Projects</button>')
+    +briefPanel(project)+designRequestPanel(project)+historyButtons(project);
+  }
+  if(currentDepartment==='Media'){
+   const mediaTasks=queue().filter(t=>t.pid===project.id&&t.dept==='Media');
+   const milestones=(project.milestones||[]).filter(m=>m.media);
+   return heading(project.name,project.id+' · Media assignments','<button class="btn" data-page="Projects">← Media Projects</button>')
+    +'<section class="card pad"><h2>Media assignments</h2>'+actionsTable(mediaTasks)+'</section>'
+    +'<section class="card pad" style="margin-top:14px"><h2>Milestone documentation</h2>'
+    +(milestones.length?milestones.map(m=>'<div class="activity"><strong>'+esc(m.name)+'</strong> · '+badge(m.status)+'</div>').join(''):'<p class="muted">No linked Media milestones yet.</p>')
+    +'</section>';
+  }
+  if(!['Administration','Project Management'].includes(currentDepartment))return '';
+  const allowed=currentDepartment==='Administration'
+   ? ['Overview','Brief & Quotation','SOW & Mobilisation','Progress & Requests','Documents & Activity']
+   : ['Overview','Brief & Quotation','SOW & Mobilisation','Progress & Requests','Documents & Activity'];
+  if(!allowed.includes(tab))tab='Overview';
+  const markup=nativeProjectPage();
+  const wrapper=document.createElement('div');wrapper.innerHTML=markup;
+  wrapper.querySelectorAll('[data-tab]').forEach(button=>{if(!allowed.includes(button.dataset.tab))button.remove()});
+  if(currentDepartment==='Administration')wrapper.querySelectorAll('[data-action="quotation"],[data-action="sow"],[data-action="milestone"]').forEach(button=>button.remove());
+  return wrapper.innerHTML;
+ };
  const nativeRender=render;
  const nativeHeading=heading;
  heading=function(title,description,action){
