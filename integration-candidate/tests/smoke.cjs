@@ -2,7 +2,7 @@
  const {chromium}=require('playwright');
  const origin='http://127.0.0.1:8765/integration-candidate/index.html';
  const assert=(value,message)=>{if(!value)throw Error(message)};
- const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.OKIKE_CHROMIUM||undefined,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:900}});
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
