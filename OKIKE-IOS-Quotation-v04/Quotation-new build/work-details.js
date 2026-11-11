@@ -160,8 +160,36 @@ const subMeasurements = {
   "Substructure inspections and testing": {unit:"tests", columns:[["tests","Tests / visits","number"],["count","Locations / groups","number"]],calc:r=>num(r.tests)*num(r.count)}
 };
 function num(value){const n=Number(value);return value===""||value==null||!Number.isFinite(n)||n<0?0:n;}
+
+const groundFloorActivities=["Ground floor preparation and level verification","Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling","Damp-proof membrane installation","Floor insulation and specialised protective layers","Ground floor reinforcement","Ground floor concrete slab","Slab construction joints, edges and finishing","Concrete curing, inspection and testing"];
+const groundFloorFields={"Ground floor preparation and level verification":[["drawing","Floor drawing reference"],["levels","Existing and formation levels"],["condition","Formation condition"]],"Filling and raising of floor levels":[["material","Fill material specification"],["source","Fill source"],["overlap","Foundation backfill exclusions"]],"Filling compaction and testing":[["method","Compaction method"],["criteria","Specified acceptance criteria"],["tests","Testing requirements"]],"Hardcore / granular sub-base installation":[["spec","Granular sub-base material","select",true,["Graded crushed stone","Crushed granite aggregate","Graded natural gravel","Lateritic granular fill","Other (specify in notes)"]],["method","Laying and compaction method"],["notes","Source and grading / approved material notes","textarea"]],"Sand blinding and surface levelling":[["spec","Sand / blinding material","select",true,["Sharp sand","Washed sand","Fine sand","Screened sand","Other (specify in notes)"]],["method","Levelling method","select",true,["Manual screeding","Straightedge and level","Laser-assisted levelling","Mechanical levelling","Other (specify in notes)"]],["notes","Material / levelling notes","textarea"]],"Damp-proof membrane installation":[["spec","Membrane specification","select",true,["Polyethylene DPM 250 micron (4 × 25 m roll)","Polyethylene DPM 300 micron (4 × 25 m roll)","Polyethylene DPM 500 micron (4 × 12.5 m roll)","Other membrane / roll size"]],["laps","Lap / upstand details"]],"Floor insulation and specialised protective layers":[["spec","Insulation / protective specification","select",true,["Expanded polystyrene (EPS) board","Extruded polystyrene (XPS) board","Polyisocyanurate (PIR) board","Rigid mineral wool board","Other / proprietary protection"]],["arrangement","Layer arrangement"]],"Ground floor reinforcement":[["spec","Mesh / bar specification","select",true,["A142 welded mesh (2.22 kg/m²)","A193 welded mesh (3.02 kg/m²)","A252 welded mesh (3.95 kg/m²)","A393 welded mesh (6.16 kg/m²)","Reinforcing bars — diameter and spacing","Other / engineered reinforcement"]],["laps","Lap / cover details"]],"Ground floor concrete slab":[["drawing","Structural drawing revision"],["grade","Approved concrete grade / specification"],["placement","Placement method"],["curing","Curing method"]],"Slab construction joints, edges and finishing":[["joints","Joint specification","select",true,["Construction joint","Saw-cut control joint","Expansion / isolation joint","Formed joint","Other — describe in notes"]],["finish","Required slab finish","select",true,["Power-floated","Steel-trowelled","Broom finish","Roughened / keyed","Other — describe in notes"]],["notes","Additional joint / finish specification","textarea"]],"Concrete curing, inspection and testing":[["curing","Curing method"],["tests","Tests and acceptance records"]]};
+const groundFloorMeasures={"Ground floor preparation and level verification":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Filling and raising of floor levels":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Filling compaction and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Hardcore / granular sub-base installation":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Sand blinding and surface levelling":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Damp-proof membrane installation":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Floor insulation and specialised protective layers":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor reinforcement":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"},"Ground floor concrete slab":{"unit":"m³","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["depth","Thickness / compacted depth (mm)","number"],["count","Zones / repeats","number"]],"formula":"volume"},"Slab construction joints, edges and finishing":{"unit":"m","columns":[["length","Total length (m)","number"],["count","Repeats","number"]],"formula":"length"},"Concrete curing, inspection and testing":{"unit":"m²","columns":[["length","Length (m)","number"],["width","Width (m)","number"],["count","Zones / repeats","number"]],"formula":"area"}};
+for(const [n,f] of Object.entries(groundFloorFields))substructureFields[n]=f;
+for(const [n,spec] of Object.entries(groundFloorMeasures)){
+ subMeasurements[n]={unit:spec.unit,columns:spec.columns,calc:r=>{
+  const length=Number(r.length)||0,width=Number(r.width)||0,depth=Number(r.depth)||0,count=Number(r.count)||0;
+  return spec.formula==="volume"?length*width*depth/1000*count:spec.formula==="length"?length*count:length*width*count;
+ }};
+}
+const FLOOR_SYSTEMS=["Ground-bearing concrete slab","Raft foundation forming floor","Suspended ground floor","Other / custom"];
+function isGroundFloor(){return currentStage==="Ground Floor Construction";}
+function getFloorConfig(){const c=getProjectData().workDetails?.groundFloor||{};return {system:c.system||FLOOR_SYSTEMS[0],enabled:Array.isArray(c.enabled)?c.enabled:null};}
+function suggestedFloorActivities(system){
+ const exclude=system===FLOOR_SYSTEMS[1]?["Ground floor concrete slab","Ground floor reinforcement"]:
+ system===FLOOR_SYSTEMS[2]?["Filling and raising of floor levels","Filling compaction and testing","Hardcore / granular sub-base installation","Sand blinding and surface levelling"]:[];
+ return groundFloorActivities.filter(n=>!exclude.includes(n));
+}
+function activeFloorActivities(){const c=getFloorConfig();return groundFloorActivities.filter(n=>(c.enabled||suggestedFloorActivities(c.system)).includes(n));}
+function saveFloorConfig(c){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.groundFloor={...c};localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}
+function renderFloorSelector(){
+ const box=document.getElementById("foundationSelector"),config=getFloorConfig(),active=activeFloorActivities();
+ box.hidden=false;box.innerHTML='<div class="sub-config"><div class="sub-config-header"><div><h3>Ground floor system</h3><p>Select the floor system, then review applicable activities. Drawings control actual requirements.</p></div><label>Floor type<select id="floorType">'+FLOOR_SYSTEMS.map(v=>option(v,config.system)).join("")+'</select></label></div><div class="sub-config-checks">'+groundFloorActivities.map(n=>'<label><input type="checkbox" class="floor-toggle" value="'+safe(n)+'" '+(active.includes(n)?"checked":"")+'> '+safe(n)+'</label>').join("")+'</div><p class="sub-notice">Do not duplicate work already measured under Substructure. Suspended floor quantities require structural review.</p></div>';
+ box.querySelector("#floorType").onchange=e=>{saveFloorConfig({system:e.target.value,enabled:null});renderActivities();};
+ box.querySelectorAll(".floor-toggle").forEach(el=>el.onchange=()=>{saveFloorConfig({system:box.querySelector("#floorType").value,enabled:[...box.querySelectorAll(".floor-toggle:checked")].map(e=>e.value)});renderActivities();});
+}
+
 function isSubstructure(){return currentStage==="Substructure";}
-function activityCatalog(){return isSubstructure()?substructureActivities:preliminariesActivities;}
+function activityCatalog(){return isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
 function getSubConfig(){const d=getProjectData().workDetails?.substructure||{};return {foundationType:d.foundationType||"Not specified",enabled:d.enabled||null};}
 function saveSubConfig(config){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.substructure={...config,updatedAt:new Date().toISOString()};try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));projectData=d;}catch(e){showToast("Could not save foundation settings.");}}
 // These are suggested activity selections, not design-approved exclusions.
@@ -174,12 +202,14 @@ box.hidden=false;box.innerHTML=`<div class="sub-config"><div class="sub-config-h
 box.querySelector('#foundationType').addEventListener('change',e=>{const type=e.target.value;saveSubConfig({foundationType:type,enabled:foundationRecommendations(type)});renderActivities();});
 box.querySelectorAll('.sub-activity-check').forEach(ch=>ch.addEventListener('change',()=>{const enabled=[...box.querySelectorAll('.sub-activity-check:checked')].map(x=>x.value);saveSubConfig({foundationType:box.querySelector('#foundationType').value,enabled});renderActivities();}));}
 function renderSubstructureDetails(){const defs=substructureFields[currentActivity]||[];const d=activityData.details;
+ if(currentActivity==="Ground floor reinforcement"&&d.spec==="Reinforcing bars — bar schedule required")d.spec="Reinforcing bars — diameter and spacing";
  const fields=defs.map(([key,label,type='text',required=false,options])=>{let control=type==='select'?`<select data-detail="${safe(key)}" ${required?'required':''}><option value="">Select (optional unless marked *)</option>${options.map(x=>option(x,d[key]||'')).join('')}</select>`:type==='textarea'?`<textarea data-detail="${safe(key)}" ${required?'required':''} placeholder="Optional">${safe(d[key]||'')}</textarea>`:`<input data-detail="${safe(key)}" type="${type}" value="${safe(d[key]||'')}" ${required?'required':''} ${type==='number'?'min="0" step="any"':''} placeholder="${required?'Required':'Optional'}">`;
  return `<div class="field-group ${type==='textarea'?'full':''}"><label>${safe(label)}${required?' *':''}</label>${control}</div>`;}).join('');
  const spec=subMeasurements[currentActivity];const rows=Array.isArray(d.measurements)?d.measurements:[];
  stepContent.innerHTML=`<div class="step-intro"><h3>${safe(currentActivity)} Details</h3><p>Enter project-specific requirements and measurement groups. Quantities are in-place estimates, not automatic procurement or selling prices.</p></div><div class="field-grid">${fields}</div><div class="measurement-panel"><div class="measure-head"><div><h3>Measurement groups</h3><p>One row per distinct size, bar schedule or location. ${safe(spec.unit)} is the calculated unit.</p></div><button type="button" id="addMeasurement" class="secondary-button">+ Add measurement row</button></div><div id="measurementRows"></div><div class="measure-total"><span>Calculated total</span><strong id="measureTotal">—</strong></div><p class="sub-notice">${safe(measurementNotice(currentActivity))}</p></div>`;
-attachDetailListeners();renderMeasurementRows();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
-function measurementNotice(activity){if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
+if(isMixActivity()){stepContent.insertAdjacentHTML('beforeend','<div id="mixPanel"></div>');}if(hasDemoResource())stepContent.insertAdjacentHTML('beforeend','<div id="derivedResourcePanel"></div>');attachDetailListeners();renderMeasurementRows();if(isMixActivity())renderMixPanel();if(hasDemoResource())renderDemoResource();document.getElementById('addMeasurement').addEventListener('click',()=>{d.measurements ||= [];d.measurements.push({ref:'',...Object.fromEntries(spec.columns.map(([key])=>[key,'']))});activityData.confirmed=false;saveProjectData();renderMeasurementRows();});}
+function measurementNotice(activity){
+ if(activity==="Ground floor reinforcement")return "Measured area only. For mesh, nominal mass uses published kg/m². For bars, select diameter, bar arrangement and spacing to calculate theoretical lengths and mass. Laps, hooks, cover, openings and wastage are excluded.";if(activity.includes('reinforcement'))return 'Theoretical mass: 0.006165 × diameter² (mm) × cut length (m) × bar count × element count. Specify laps, hooks and cutting lengths in the schedule; no waste factor is applied.';
 if(activity==='Foundation backfilling and compaction')return 'Calculated compacted in-place volume only. Bulking, shrinkage and imported material quantities require separately verified factors.';
 if(activity==='Ground beam concrete works')return 'Deduct beam intersections only where necessary to avoid double counting. Check overlaps with foundations and column starters.';
 if(activity==='Foundation bed preparation and blinding')return 'Blinding thickness is entered in mm and converted to metres. Enter zero rows if blinding is not specified.';
@@ -192,7 +222,7 @@ wrap.querySelectorAll('[data-measure-key]').forEach(input=>input.addEventListene
 wrap.querySelectorAll('[data-remove-measure]').forEach(btn=>btn.addEventListener('click',()=>{activityData.details.measurements.splice(Number(btn.dataset.removeMeasure),1);activityData.confirmed=false;saveProjectData();renderMeasurementRows();}));updateMeasureTotals();}
 function formatMeasure(n){return Number(n).toLocaleString('en-NG',{maximumFractionDigits:3});}
 function updateMeasureTotals(){const spec=subMeasurements[currentActivity];const rows=activityData.details.measurements||[];let total=0;let complete=0;rows.forEach((row,i)=>{const result=calcMeasured(spec,row);const el=document.querySelector(`[data-measure-result="${i}"]`);if(el)el.textContent=result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`;if(result!==null){total+=result;complete++;}});
- const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';}
+ const el=document.getElementById('measureTotal');if(el)el.textContent=rows.length&&complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'—';if(isMixActivity()){updateMixPreview();saveProjectData();}if(hasDemoResource()){updateDemoResource();saveProjectData();}}
 function substructureReview(){const d=activityData.details;const fields=(substructureFields[currentActivity]||[]).map(([key,label])=>reviewLine(label,d[key]||'')).join('');const spec=subMeasurements[currentActivity];const rows=d.measurements||[];let total=0;let complete=0;const measurements=rows.map((row,i)=>{const result=calcMeasured(spec,row);if(result!==null){total+=result;complete++;}return reviewLine(`Measurement ${i+1}: ${row.ref||'Unlabelled'}`,result===null?'Incomplete':`${formatMeasure(result)} ${spec.unit}`)}).join('');return `<div class="review-section"><h3>1. ${safe(currentActivity)} details</h3>${fields}<h3>Measurement groups</h3>${measurements||'<p>No measurements entered</p>'}${reviewLine('Calculated quantity',complete?`${formatMeasure(total)} ${spec.unit}${complete<rows.length?' (partial)':''}`:'Not calculated')}${reviewLine('Measurement caution',measurementNotice(currentActivity))}</div>`;}
 
 const stageDescriptions = {
@@ -643,7 +673,7 @@ function renderStages() {
 
   stageList.innerHTML = selectedStages.map((stage, index) => {
 
-    const completed = ["Preliminaries & Site Preparation", "Substructure"].includes(stage) && getCompletedActivityCount(stage) > 0;
+    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage) && getCompletedActivityCount(stage) > 0;
 
     return `
       <div class="stage-row" data-stage="${safe(stage)}" role="button" tabindex="0" aria-label="Open ${safe(stage)}">
@@ -665,7 +695,7 @@ function renderStages() {
 
         <span class="stage-meta">
           ${
-            ["Preliminaries & Site Preparation", "Substructure"].includes(stage)
+            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)
               ? `${getCompletedActivityCount(stage)} activities completed`
               : "Activities to be defined"
           }
@@ -704,7 +734,7 @@ function openStage(stage) {
   document.getElementById("activityEyebrow").textContent =
     "SELECTED CONSTRUCTION STAGE";
 
-  if (!["Preliminaries & Site Preparation", "Substructure"].includes(stage)) {
+  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)) {
 
     activityList.innerHTML = `
       <div class="empty-state">
@@ -733,7 +763,7 @@ function getActivityRecord(name) {
 }
 
 function getCompletedActivityCount(stage = currentStage) {
-  const list = stage === "Substructure" ? selectedSubActivities() : preliminariesActivities;
+  const list = stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
   return list.filter(name => {
     return getActivityRecord(name)?.confirmed;
   }).length;
@@ -744,19 +774,16 @@ function getCompletedActivityCount(stage = currentStage) {
 // ==========================================
 
 function renderActivities() {
-  const names=isSubstructure()?selectedSubActivities():preliminariesActivities;
+  const names=isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
   const completed=getCompletedActivityCount();
   const selector=document.getElementById('foundationSelector');
-  if(selector){selector.hidden=!isSubstructure();if(isSubstructure())renderFoundationSelector();}
+  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();}
   document.getElementById('activityProgress').textContent=`${completed} / ${names.length}`;
   activityList.innerHTML=names.length?names.map((name,index)=>{
     const record=getActivityRecord(name),confirmed=!!record?.confirmed;
     return `<div class="activity-row" data-activity="${safe(name)}" role="button" tabindex="0" aria-label="Open ${safe(name)}"><span class="stage-index">${String(index+1).padStart(2,'0')}</span><div class="activity-row-content"><h3>${safe(name)}</h3><p>${confirmed?`Confirmed · ${money(record.totalCost||0)}`:record?'Draft saved — not confirmed':'Work details and costing not yet completed.'}</p></div><span class="status-label ${confirmed?'':'status-pending'}">${confirmed?'Completed':'Not confirmed'}</span></div>`;
   }).join(''):'<div class="empty-state">No activities selected. Check the activities applicable to this foundation system above.</div>';
-  activityList.querySelectorAll('.activity-row[data-activity]').forEach(row=>{
-    row.addEventListener('click',()=>openActivity(row.dataset.activity));
-    row.addEventListener('keydown',e=>{if(e.target!==row)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();openActivity(row.dataset.activity);}});
-  });
+  // Activity handlers are delegated once below, so freshly rendered rows remain interactive.
 }
 
 // ==========================================
@@ -764,7 +791,7 @@ function renderActivities() {
 // ==========================================
 
 function navigateSiblingActivity(direction) {
-  const names=activityCatalog().filter(name=>!isSubstructure()||selectedSubActivities().includes(name));
+  const names=activityCatalog().filter(name=>isSubstructure()?selectedSubActivities().includes(name):isGroundFloor()?activeFloorActivities().includes(name):true);
   const index=names.indexOf(currentActivity);
   const next=names[index+direction];
   if(!next)return;
@@ -772,7 +799,7 @@ function navigateSiblingActivity(direction) {
   openActivity(next);
 }
 function updateSiblingNavigation(){
-  const names=activityCatalog().filter(name=>!isSubstructure()||selectedSubActivities().includes(name));
+  const names=activityCatalog().filter(name=>isSubstructure()?selectedSubActivities().includes(name):isGroundFloor()?activeFloorActivities().includes(name):true);
   const index=names.indexOf(currentActivity);
   const supported=index>=0;
   document.querySelectorAll('[data-sibling]').forEach(btn=>{
@@ -889,6 +916,7 @@ function attachDetailListeners() {
         activityData.details[field.dataset.detail] =
           field.value;
         activityData.confirmed=false;
+        if(hasDemoResource()){if(field.dataset.detail==="spec")renderDemoResource();else updateDemoResource();}
 
         clearInvalidState(field);
         saveProjectData();
@@ -1370,7 +1398,7 @@ function renderWorkDetails() {
     return;
   }
 
-  if (isSubstructure() && substructureFields[currentActivity]) {
+  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) {
     renderSubstructureDetails();
     return;
   }
@@ -1605,7 +1633,7 @@ function renderResourceRows(containerId, rows, type) {
 // ==========================================
 
 function renderMaterials() {
-
+  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();
   stepContent.innerHTML = `
 
     <div class="step-intro">
@@ -1626,7 +1654,7 @@ function renderMaterials() {
         arrangement and rate.
       </p>
 
-      <div id="materialsRows"></div>
+      <p class="sub-notice">Automatically generated placeholder material rows are unverified; validate before pricing. Additional manual materials and equipment remain editable.</p><div id="materialsRows"></div>
 
       <button
         type="button"
@@ -2339,7 +2367,7 @@ function renderReview() {
     `;
   }
 
-  if (isSubstructure() && substructureFields[currentActivity]) { detailsReview=substructureReview(); }
+  if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(hasDemoResource())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> Automatically derived material quantities are not commercially approved.</p>'; if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
 
   // Generic review for the 11 stage-specific activity forms.
   if (Object.prototype.hasOwnProperty.call(activityFieldDefinitions, currentActivity)) {
@@ -2415,7 +2443,7 @@ function validateCurrentStep() {
     if (invalid) missing.push(field);
   });
 
-  if (isSubstructure() && currentStep===0) {
+  if ((isSubstructure() || isGroundFloor()) && currentStep===0) {
     const rows=activityData.details.measurements||[];
     const spec=subMeasurements[currentActivity];
     if (rows.some(row=>spec.columns.some(([key])=>row[key]===''||row[key]===null||row[key]===undefined||!Number.isFinite(Number(row[key]))||Number(row[key])<0))) {
@@ -2571,8 +2599,271 @@ document.getElementById("confirmActivity")
   });
 
 // ==========================================
-// INITIALISE PAGE
-// ==========================================
+// OK-QNB-003: prototype calculator functions
+function isMixActivity(){return currentActivity==="Ground floor concrete slab";}
+function mixState(){
+ const d=activityData.details;
+ d.mixDemo ||= {method:"site",parts:{cement:"1",sand:"2",gravel:"4"},units:{cement:"kg",sand:"kg",gravel:"kg"},factor:"1"};
+ return d.mixDemo;
+}
+function mixQuantities(){
+ const mix=mixState(),rows=activityData.details.measurements||[];
+ const spec=subMeasurements[currentActivity];
+ if(!rows.length||rows.some(row=>calcMeasured(spec,row)===null))return null;
+ const volume=rows.reduce((a,r)=>a+calcMeasured(spec,r),0);
+ if(mix.method==="ready")return {volume,ready:volume};
+ const parts=["cement","sand","gravel"].map(k=>Number(mix.parts[k]));
+ const factor=Number(mix.factor);
+ if(parts.some(n=>!Number.isFinite(n)||n<=0)||!Number.isFinite(factor)||factor<=0)return null;
+ const sum=parts.reduce((a,b)=>a+b,0),densities=[1440,1600,1500];
+ return {volume,cement:volume*factor*parts[0]/sum*densities[0],sand:volume*factor*parts[1]/sum*densities[1],gravel:volume*factor*parts[2]/sum*densities[2]};
+}
+function mixConvert(kg,unit){return unit==="t"?kg/1000:unit==="50kg-bags"?kg/50:kg;}
+function syncMixMaterials(){
+ if(!isMixActivity())return;
+ const m=mixState(),q=mixQuantities(),previous=activityData.materials||[];
+ const manual=previous.filter(x=>x.source!=="okike-placeholder-mix");
+ const old=Object.fromEntries(previous.filter(x=>x.source==="okike-placeholder-mix").map(x=>[x.materialKey,x]));
+ const generated=[];
+ if(q){
+  for(const key of(m.method==="ready"?["ready"]:["cement","sand","gravel"])){
+   const quantity=key==="ready"?q.ready:mixConvert(q[key],m.units[key]);
+   generated.push({name:({cement:"Cement",sand:"Sharp sand",gravel:"Gravel",ready:"Ready-mixed concrete"})[key],
+    quantity:String(Number(quantity.toFixed(4))),unit:key==="ready"?"m³":m.units[key],arrangement:"Purchased",rate:old[key]?.rate||"",
+    source:"okike-placeholder-mix",materialKey:key,formulaStatus:"UNVERIFIED_PLACEHOLDER"});
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function updateMixPreview(){
+ if(!isMixActivity())return;
+ const q=mixQuantities(),m=mixState(),volume=document.getElementById("mixVolume");
+ if(!volume)return;
+ volume.textContent=q?formatMeasure(q.volume)+" m³":"—";
+ for(const key of["cement","sand","gravel"]){
+  const out=document.querySelector('[data-mix-output="'+key+'"]');
+  if(out)out.textContent=q&&m.method==="site"?formatMeasure(mixConvert(q[key],m.units[key]))+" "+m.units[key]:"—";
+ }
+ const ready=document.getElementById("mixReady");
+ if(ready)ready.textContent=q?formatMeasure(q.volume)+" m³":"—";
+ syncMixMaterials();
+}
+function renderMixPanel(){
+ const host=document.getElementById("mixPanel");if(!host)return;
+ const m=mixState();
+ host.innerHTML='<div class="measurement-panel"><h3>Concrete mix — demonstration calculator</h3><p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> These quantities are for testing the form, not procurement, structural design or final quotations. Placeholder dry conversion factor and densities are not OKIKE-approved rules.</p><div class="field-grid"><div class="field-group"><label>Concrete supply</label><select id="mixMethod">'+option("site",m.method)+option("ready",m.method)+'</select></div><div class="field-group"><label>Calculated slab concrete volume</label><strong id="mixVolume">—</strong></div></div><div id="siteMixDetails" '+(m.method==="ready"?'hidden':'')+'><div class="field-grid">'+["cement","sand","gravel"].map(key=>'<div class="field-group"><label>'+key[0].toUpperCase()+key.slice(1)+' mix part</label><input type="number" min="0.001" step="any" data-mix-ratio="'+key+'" value="'+safe(m.parts[key])+'"><label>Calculated quantity</label><strong data-mix-output="'+key+'">—</strong><select data-mix-unit="'+key+'">'+["kg","t",...(key==="cement"?["50kg-bags"]:[])].map(v=>option(v,m.units[key])).join("")+'</select></div>').join("")+'</div><div class="field-group"><label>Illustrative dry-volume factor (not approved)</label><input id="mixFactor" type="number" min="0.001" step="any" value="'+safe(m.factor)+'"></div></div><p id="readyMixDetails" '+(m.method==="site"?'hidden':'')+'>Ready-mixed concrete volume: <strong id="mixReady">—</strong></p><p class="sub-notice">Demo mass model: slab volume × factor × (material mix part ÷ total parts) × assumed density. Demonstration densities: cement 1440, sand 1600, gravel 1500 kg/m³. No procurement allowance or bag rounding. Arbitrary proportions do not establish structural concrete suitability.</p></div>';
+ host.querySelector("#mixMethod").onchange=e=>{m.method=e.target.value;activityData.confirmed=false;renderMixPanel();syncMixMaterials();saveProjectData();};
+ host.querySelectorAll("[data-mix-ratio]").forEach(el=>el.oninput=()=>{m.parts[el.dataset.mixRatio]=el.value;activityData.confirmed=false;updateMixPreview();saveProjectData();});
+ host.querySelectorAll("[data-mix-unit]").forEach(el=>el.onchange=()=>{m.units[el.dataset.mixUnit]=el.value;activityData.confirmed=false;updateMixPreview();saveProjectData();});
+ host.querySelector("#mixFactor").oninput=e=>{m.factor=e.target.value;activityData.confirmed=false;updateMixPreview();saveProjectData();};
+ updateMixPreview();
+}
 
+
+/* OK-QNB-005 — Source-grounded quantity methods.
+ * Sources: RICS NRM2, BS4483 mesh tables (Midland Rapid, Rainham);
+ * Visqueen DPM product roll dimensions. Physical and theoretical
+ * minimum packaging are not automatically supplier order quantities.
+ */
+const VERIFIED_RESOURCE_ACTIVITIES=[
+ "Hardcore / granular sub-base installation",
+ "Sand blinding and surface levelling",
+ "Damp-proof membrane installation",
+ "Floor insulation and specialised protective layers",
+ "Ground floor reinforcement"
+];
+const MESH_KG_PER_SQM={
+ "A142 welded mesh (2.22 kg/m²)":2.22,
+ "A193 welded mesh (3.02 kg/m²)":3.02,
+ "A252 welded mesh (3.95 kg/m²)":3.95,
+ "A393 welded mesh (6.16 kg/m²)":6.16
+};
+const DPM_ROLLS={
+ "Polyethylene DPM 250 micron (4 × 25 m roll)":{width:4,length:25},
+ "Polyethylene DPM 300 micron (4 × 25 m roll)":{width:4,length:25},
+ "Polyethylene DPM 500 micron (4 × 12.5 m roll)":{width:4,length:12.5}
+};
+function hasDemoResource(){return isGroundFloor()&&VERIFIED_RESOURCE_ACTIVITIES.includes(currentActivity);}
+function isPositive(x){return String(x??"").trim()!==""&&Number.isFinite(Number(x))&&Number(x)>0;}
+function demoResourceState(){
+ const d=activityData.details;d.resourceDemo ||= {};
+ const v=d.resourceDemo;
+ // The previous editable demonstration factor is intentionally ignored.
+ // Keep legacy data for non-destructive storage compatibility.
+ if(!isPositive(v.panelLength))v.panelLength="";
+ if(!isPositive(v.panelWidth))v.panelWidth="";
+ if(!isPositive(v.rollLength))v.rollLength="";
+ if(!isPositive(v.rollWidth))v.rollWidth="";
+ if(!v.barDiameter)v.barDiameter="";
+ if(!v.spacingAcrossWidth)v.spacingAcrossWidth="";
+ if(!v.spacingAcrossLength)v.spacingAcrossLength="";
+ if(!["two-way","lengthwise","widthwise"].includes(v.barArrangement))v.barArrangement="two-way";
+ const isBars=currentActivity==="Ground floor reinforcement"&&["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(activityData.details.spec);
+ const allowed=currentActivity==="Ground floor reinforcement"?(isBars?["kg","t","m","bars"]:["kg","t","m²","sheets"]):
+ currentActivity==="Damp-proof membrane installation"?["m²","yd²","rolls","m","yd","cm","mm"]:
+ currentActivity==="Floor insulation and specialised protective layers"?["m²","yd²","panels"]:
+ ["m³","yd³"];
+ if(!allowed.includes(v.unit))v.unit=allowed[0];
+ return v;
+}
+function baseMeasuredAmount(){
+ const rows=activityData.details.measurements||[],spec=subMeasurements[currentActivity];
+ if(!rows.length||rows.some(r=>calcMeasured(spec,r)===null))return null;
+ return rows.reduce((sum,r)=>sum+calcMeasured(spec,r),0);
+}
+function standardMaterialQuantity(){
+ if(!hasDemoResource())return {error:"Activity not supported"};
+ const area=baseMeasuredAmount(),d=activityData.details,state=demoResourceState();
+ if(area===null)return {error:"Enter complete measurement rows"};
+ const spec=String(d.spec||"").trim();
+ if(!spec)return {error:"Select material specification"};
+ const name=currentActivity,unit=state.unit;
+ if(name==="Hardcore / granular sub-base installation"||name==="Sand blinding and surface levelling"){
+   return {quantity:unit==="yd³"?area/0.764554857984:area,unit,
+     note:"Compacted/in-place layer volume only; loose supply and tonnes need verified density and compaction data.",base:area,
+     material:name.startsWith("Hardcore")?spec:spec};
+ }
+ if(name==="Damp-proof membrane installation"){
+   const product=DPM_ROLLS[spec];
+   const rollWidth=product?.width||Number(state.rollWidth),rollLength=product?.length||Number(state.rollLength);
+   const hasRoll=isPositive(rollWidth)&&isPositive(rollLength);
+   if(["rolls","m","yd","cm","mm"].includes(unit)&&!hasRoll)
+     return {error:"Enter the usable roll width and length for this specification"};
+   const rollArea=rollWidth*rollLength;
+   if(unit==="rolls")
+     return {quantity:Math.ceil(area/rollArea),unit,base:area,
+       note:"Theoretical minimum rolls by gross coverage only. Laps, upstands, cuts and layout require a separate plan.",material:spec};
+   if(["m","yd","cm","mm"].includes(unit)){
+     const length=area/rollWidth;
+     return {quantity:unit==="yd"?length/0.9144:unit==="cm"?length*100:unit==="mm"?length*1000:length,
+       unit,base:area,note:"Equivalent membrane length at selected usable roll width; gross area, no lap allowance.",material:spec};
+   }
+   return {quantity:unit==="yd²"?area/0.83612736:area,unit,base:area,
+     note:"Net membrane coverage; lap, upstand, cut loss and roll layout are not yet measured.",material:spec};
+ }
+ if(name==="Floor insulation and specialised protective layers"){
+   if(unit==="panels"){
+     if(!isPositive(state.panelLength)||!isPositive(state.panelWidth))
+       return {error:"Enter panel length and width in metres to calculate panel count"};
+     return {quantity:Math.ceil(area/(Number(state.panelLength)*Number(state.panelWidth))),unit,base:area,
+       note:"Theoretical minimum panels from gross board area; board layout and cuts require review.",material:spec};
+   }
+   return {quantity:unit==="yd²"?area/0.83612736:area,unit,base:area,
+     note:"Coverage area only. Panel size, layers, cuts and product suitability require review.",material:spec};
+ }
+ if(name==="Ground floor reinforcement"){
+   if(["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(spec)){
+     const diameter=Number(state.barDiameter),spanAcrossWidth=Number(state.spacingAcrossWidth),
+       spanAcrossLength=Number(state.spacingAcrossLength),arrangement=state.barArrangement;
+     const lengthwise=arrangement==="two-way"||arrangement==="lengthwise";
+     const widthwise=arrangement==="two-way"||arrangement==="widthwise";
+     if(!isPositive(state.barDiameter)||![8,10,12,16,20,25,32].includes(diameter))
+       return {error:"Select bar diameter to calculate reinforcement quantity"};
+     if(lengthwise&&!isPositive(state.spacingAcrossWidth))
+       return {error:"Enter spacing across slab width (mm) for lengthwise bars"};
+     if(widthwise&&!isPositive(state.spacingAcrossLength))
+       return {error:"Enter spacing across slab length (mm) for widthwise bars"};
+     const rows=activityData.details.measurements||[];
+     let totalLength=0,totalBars=0;
+     for(const row of rows){
+       const L=Number(row.length),W=Number(row.width),zones=Number(row.count);
+       if(![L,W,zones].every(n=>Number.isFinite(n)&&n>0))
+         return {error:"Enter positive slab length, width and zone count"};
+       if(lengthwise){
+         const bars=Math.ceil(W/(spanAcrossWidth/1000))+1;
+         totalBars+=bars*zones;totalLength+=bars*L*zones;
+       }
+       if(widthwise){
+         const bars=Math.ceil(L/(spanAcrossLength/1000))+1;
+         totalBars+=bars*zones;totalLength+=bars*W*zones;
+       }
+     }
+     const mass=totalLength*0.006165*diameter*diameter;
+     const quantity=unit==="t"?mass/1000:unit==="m"?totalLength:unit==="bars"?totalBars:mass;
+     return {quantity,unit,base:area,barCount:totalBars,barLength:totalLength,massKg:mass,
+       note:"Preliminary grid takeoff: bar count per run = ceil(perpendicular span ÷ spacing) + 1; total length × 0.006165 × diameter² (mm) gives theoretical kg. No laps, anchorage, bending, cover, cut waste or structural verification.",material:"Reinforcing bar "+diameter+" mm"};
+   }
+   const density=MESH_KG_PER_SQM[spec];
+   if(!density)return {error:"Selected bar or custom reinforcement requires an engineered bar bending schedule; no mesh mass can be inferred"};
+   const mass=area*density;
+   if(unit==="sheets"){
+     return {quantity:Math.ceil(area/(4.8*2.4)),unit,base:area,
+       note:"Theoretical minimum 4.8 × 2.4 m mesh sheets, excluding laps, cuts and layout; verify supplier sheet size.",material:spec};
+   }
+   return {quantity:unit==="m²"?area:unit==="t"?mass/1000:mass,unit,base:area,
+     note:"Nominal mass = coverage m² × published mesh kg/m². Laps, waste and procurement quantity not included.",material:spec};
+ }
+ return {error:"Unsupported material type"};
+}
+function syncDemoResource(){
+ if(!hasDemoResource())return;
+ const tag="okike-placeholder-floor-resource",existing=activityData.materials||[],old=existing.find(r=>r.source===tag);
+ const keep=existing.filter(r=>r.source!==tag),r=standardMaterialQuantity();
+ if(r.error){activityData.materials=keep;return;}
+ activityData.materials=[{name:r.material,quantity:String(Number(r.quantity.toFixed(6))),unit:r.unit,
+ arrangement:"Purchased",rate:(old?.name===r.material&&old?.unit===r.unit)?(old.rate||""):"",source:tag,formulaStatus:"MEASURED_REFERENCE_METHOD",
+ materialKey:currentActivity},...keep];
+}
+function renderDemoResource(){
+ const host=document.getElementById("derivedResourcePanel");if(!host||!hasDemoResource())return;
+ const state=demoResourceState(),name=currentActivity,fields=[];
+ const isMem=name==="Damp-proof membrane installation",isIns=name==="Floor insulation and specialised protective layers";
+ const isBar=name==="Ground floor reinforcement"&&["Reinforcing bars — diameter and spacing","Reinforcing bars — bar schedule required"].includes(activityData.details.spec);
+ const choices=name==="Ground floor reinforcement"?(isBar?["kg","t","m","bars"]:["kg","t","m²","sheets"]):
+ isMem?["m²","yd²","rolls","m","yd","cm","mm"]:isIns?["m²","yd²","panels"]:["m³","yd³"];
+ if(isBar)fields.push(
+ '<div class="field-group"><label>Bar diameter *</label><select data-derived="barDiameter"><option value="">Select diameter</option>'+[8,10,12,16,20,25,32].map(d=>option(String(d)+" mm",(state.barDiameter?String(state.barDiameter)+" mm":""))).join("")+'</select></div>'+
+ '<div class="field-group"><label>Bar arrangement *</label><select data-derived="barArrangement">'+[["two-way","Two-way bars"],["lengthwise","Lengthwise bars only"],["widthwise","Widthwise bars only"]].map(([v,l])=>'<option value="'+v+'" '+(v===state.barArrangement?'selected':'')+'>'+l+'</option>').join("")+'</select></div>'+
+ '<div class="field-group"><label>Spacing across slab width (mm)'+(state.barArrangement==="widthwise"?" (not used)":" *")+'</label><input type="number" min="1" step="any" data-derived="spacingAcrossWidth" value="'+safe(state.spacingAcrossWidth)+'"></div>'+
+ '<div class="field-group"><label>Spacing across slab length (mm)'+(state.barArrangement==="lengthwise"?" (not used)":" *")+'</label><input type="number" min="1" step="any" data-derived="spacingAcrossLength" value="'+safe(state.spacingAcrossLength)+'"></div>');
+  if(isMem&&!DPM_ROLLS[activityData.details.spec])fields.push(
+ '<div class="field-group"><label>Membrane roll width (m)</label><input data-derived="rollWidth" type="number" min="0.001" step="any" value="'+safe(state.rollWidth)+'"></div>'+
+ '<div class="field-group"><label>Membrane roll length (m)</label><input data-derived="rollLength" type="number" min="0.001" step="any" value="'+safe(state.rollLength)+'"></div>');
+ if(isIns)fields.push(
+ '<div class="field-group"><label>Selected panel length (m)</label><input data-derived="panelLength" type="number" min="0.001" step="any" value="'+safe(state.panelLength)+'"></div>'+
+ '<div class="field-group"><label>Selected panel width (m)</label><input data-derived="panelWidth" type="number" min="0.001" step="any" value="'+safe(state.panelWidth)+'"></div>');
+ host.innerHTML='<div class="measurement-panel demo-resource-panel"><h3>Calculated material requirement</h3>'+
+ '<p class="sub-notice">Measured quantity and published material data only. This is a preliminary quantity takeoff, not a validated supplier order or structural design.</p>'+
+ '<p class="demo-spec-label">Specification: <strong id="demoSpec">'+safe(activityData.details.spec||"Not yet specified")+'</strong></p>'+
+ '<div class="field-grid"><div class="field-group"><label>Output unit</label><select id="demoUnit">'+choices.map(u=>option(u,state.unit)).join("")+'</select></div>'+fields.join("")+'</div>'+
+ '<div class="measure-total"><span>Calculated material quantity</span><strong id="demoTotal">—</strong></div>'+
+ '<p class="sub-notice" id="demoMethodNote"></p></div>';
+ host.querySelector("#demoUnit").addEventListener("change",e=>{state.unit=e.target.value;activityData.confirmed=false;renderDemoResource();saveProjectData();});
+ host.querySelectorAll("[data-derived]").forEach(input=>input.addEventListener(input.tagName==="SELECT"?"change":"input",e=>{
+   state[e.target.dataset.derived]=e.target.dataset.derived==="barDiameter"?e.target.value.replace(" mm",""):e.target.value;activityData.confirmed=false;if(e.target.dataset.derived==="barArrangement")renderDemoResource();else updateDemoResource();saveProjectData();
+ }));
+ updateDemoResource();
+}
+function updateDemoResource(){
+ if(!hasDemoResource())return;
+ const result=standardMaterialQuantity(),total=document.getElementById("demoTotal"),note=document.getElementById("demoMethodNote");
+ if(total)total.textContent=result.error?"—":formatMeasure(result.quantity)+" "+result.unit;
+ if(note)note.textContent=result.error?result.error:(result.barCount!==undefined?"Bars: "+formatMeasure(result.barCount)+" · Total bar length: "+formatMeasure(result.barLength)+" m · Theoretical mass: "+formatMeasure(result.massKg)+" kg. ":"")+result.note;
+ const spec=document.getElementById("demoSpec");
+ if(spec)spec.textContent=activityData.details.spec||"Not yet specified";
+ syncDemoResource();
+}
+
+
+/* One delegated handler for the full activity list across all configured stages. */
+function openSelectedActivity(name){
+ try{
+   if(!activityCatalog().includes(name))return;
+   openActivity(name);
+ }catch(error){
+   console.error("OKIKE could not open activity:",error);
+   showToast("Unable to open this activity. Review the console error.");
+ }
+}
+activityList.addEventListener("click",event=>{
+ const row=event.target.closest(".activity-row[data-activity]");
+ if(row&&activityList.contains(row))openSelectedActivity(row.dataset.activity);
+});
+activityList.addEventListener("keydown",event=>{
+ if(event.key!=="Enter"&&event.key!==" ")return;
+ const row=event.target.closest(".activity-row[data-activity]");
+ if(row&&activityList.contains(row)){event.preventDefault();openSelectedActivity(row.dataset.activity);}
+});
+// Start on the selected Construction Scope. Never preselect a demonstration activity.
 renderStages();
 showView(stageView);
