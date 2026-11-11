@@ -7,7 +7,11 @@
  let currentRole='Admin';
  document.body.classList.add('embedded','department-contained');
  function warn(message){console.warn('[OKIKE integration]',message)}
- function communicate(){try{parent.postMessage({type:'okike:administration-updated',department:currentDepartment},location.origin)}catch(e){}}
+ function communicate(){
+  // Persist the same derived cross-department queue shown by the Administration workflow.
+  try{localStorage.setItem('okike_admin_work_queue_v1',JSON.stringify(queue().map(t=>({id:t.id||'',title:t.title||'',sub:t.sub||'',dept:t.dept||'',status:t.status||'',pid:t.pid||'',enquiry:t.enquiry||''}))))}catch(e){warn(e.message)}
+  try{parent.postMessage({type:'okike:administration-updated',department:currentDepartment},location.origin)}catch(e){}
+ }
  function syncRecords(){ /* Administration owns project identity; Home is a read-only projection. */ }
  try{syncRecords()}catch(e){warn(e.message)}
  const nativeDashboard=dashboard;
