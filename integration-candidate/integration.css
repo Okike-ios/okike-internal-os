@@ -1,0 +1,20 @@
+/* Integration styles layer — preserves OKIKE design tokens and existing quotation styles. */
+.department-module{width:100%;height:calc(100vh - 106px);min-height:680px;border:0;display:block;background:var(--ivory,#F5F3ED)}
+.integration-note{background:var(--soft,#F5F3ED);border:1px solid var(--line,#DEDCD3);border-radius:9px;padding:14px 18px;margin-bottom:14px;color:var(--ink,#353B36);line-height:1.55}
+.integration-note strong{color:var(--orange-dark,#A95124)}
+.integration-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 15px}
+.integration-actions .btn{min-width:145px;justify-content:center}
+.integration-list{display:grid;gap:10px}.integration-item{padding:13px 15px;border:1px solid var(--line,#DEDCD3);border-radius:8px;background:var(--panel,#FFF);display:grid;gap:5px}
+.integration-item small{color:var(--sub,#777)}.integration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0}
+.integration-grid>section{min-width:0}.integration-count{font-size:25px;color:var(--orange,#C96A32);font-weight:700}
+.accounting .acct-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:22px}.accounting .acct-grid>.card{min-width:0;overflow:hidden}
+.accounting .acct-table{max-width:100%;overflow-x:auto;overflow-y:hidden;margin-top:18px;scrollbar-gutter:stable}
+.accounting .acct-table .data-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}
+.accounting .acct-table .data-table th,.accounting .acct-table .data-table td{padding:13px 15px;text-align:left;vertical-align:top;line-height:1.45;min-width:95px;white-space:normal;overflow-wrap:anywhere}
+.accounting .acct-table .data-table th:first-child,.accounting .acct-table .data-table td:first-child{min-width:150px}
+.accounting .acct-table .data-table td .btn{display:inline-flex;align-items:center;min-height:34px;margin:3px 5px 3px 0;white-space:nowrap}
+.accounting .card-pad{padding:22px}.accounting .form-grid{gap:16px}.accounting .field{min-width:0}.accounting .field input,.accounting .field select{max-width:100%;min-height:40px}
+.accounting .summary-row{align-items:baseline;flex-wrap:wrap}.accounting .summary-row b{overflow-wrap:anywhere}
+.accounting .acct-banner{gap:15px}.accounting .role-label{font-size:12px}
+@media(max-width:1100px){.accounting .acct-grid{grid-template-columns:minmax(0,1fr)}.integration-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.department-module{min-height:780px;height:calc(100vh - 92px)}.integration-actions .btn{min-width:0;flex:1}.accounting .card-pad{padding:16px}}
