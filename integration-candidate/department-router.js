@@ -104,7 +104,9 @@
  window.addEventListener('storage',event=>{
   if(event.key==='okike_admin_prototype_v1'||event.key==='okike_accounting_v1'||event.key==='okike_internal_os_demo_v1'){
    if(event.key==='okike_internal_os_demo_v1'){try{const updated=JSON.parse(event.newValue);if(updated?.projects&&updated?.clients)state=updated}catch(e){}}
-   if(!document.querySelector('#acForm')&&!document.querySelector('#okikeDepartmentFrame form:focus'))render();
+   // Never tear down an editing departmental iframe in response to its own storage save.
+   if(document.getElementById('okikeDepartmentFrame'))return;
+   if(!document.querySelector('#acForm'))render();
   }
  });
  render();
