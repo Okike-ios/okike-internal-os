@@ -46,6 +46,13 @@
  try{
   await page.goto(origin,{waitUntil:'domcontentloaded'});
   await page.waitForTimeout(500);
+  assert(await page.locator('#accessForm').isVisible(),'New browser must open the demo login screen');
+  assert(await page.locator('#app').getAttribute('aria-hidden')==='true','Application must be hidden before login');
+  await page.locator('#accessForm [name="employeeName"]').fill('OKIKE Test General');
+  await page.locator('#accessForm [name="department"]').selectOption('General');
+  await page.locator('#accessForm button[type="submit"]').click();
+  await page.locator('#accessForm').waitFor({state:'detached',timeout:10000});
+  assert((await page.evaluate(()=>window.OKIKE_DEMO_ACCESS.getSession())).department==='General','General demo login not established');
   assert(await page.locator('[data-nav="Administration"]').count()>0,'IOS sidebar missing');
   assert(await page.locator('#acRole').count()===0,'Old testing role selector is visible');
   await openSection('Administration');
@@ -136,8 +143,44 @@
   assert(await page.frameLocator('#okikeDepartmentFrame').locator('body').evaluate(()=>state.projects.length)===0,'Administration re-seeded old data after reset');
   await openSection('Home');
   assert(await page.evaluate(()=>state.projects.length)===0,'Home repopulated sample projects after reset');
+  // Session survives refresh, without re-entering the login form.
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(!(await page.locator('#accessForm').isVisible()),'Demo login should persist on refresh');
+  await page.locator('[data-access-profile]').click();
+  assert(await page.locator('[data-access-logout]').isVisible(),'Log Out missing from profile menu');
+  await page.locator('[data-access-logout]').click();
+  assert(await page.locator('#accessForm').isVisible(),'Logout must return to login screen');
+  assert(await page.evaluate(()=>localStorage.getItem('okike_admin_prototype_v1')!==null),'Logout erased business data');
+  await page.locator('#accessForm [name="employeeName"]').fill('OKIKE Design Tester');
+  await page.locator('#accessForm [name="department"]').selectOption('Design');
+  await page.locator('#accessForm button[type="submit"]').click();
+  assert((await page.evaluate(()=>window.OKIKE_DEMO_ACCESS.getSession())).department==='Design','Design login not stored');
+  await openSection('Home');
+  assert(!(await page.locator('.access-denied').count()),'Home must be shared by all departments');
+  await openSection('Settings');
+  assert(!(await page.locator('.access-denied').count()),'Settings must remain accessible');
+  await openSection('Finance');
+  assert(await page.locator('.access-denied').count()===1,'Finance must be restricted for Design');
+  assert(await page.locator('#okikeDepartmentFrame').count()===0,'Restricted Finance must not mount a frame');
+  assert(await page.locator('.accounting').count()===0,'Restricted Finance must not render accounting');
+  await page.locator('[data-access-return]').click();
+  assert(!(await page.locator('.access-denied').count()),'Return to Design should restore access');
+  await openSection('Project Management');
+  assert(await page.locator('.access-denied').count()===1,'Project Management must be restricted for Design');
+  await page.evaluate(()=>{
+    const data=JSON.parse(localStorage.getItem('okike_admin_prototype_v1'));
+    data.clients.push({id:'CL-ACCESS',name:'Access Test Client'});
+    data.projects.push({id:'OK-ACCESS-001',name:'Access Test Project',clientId:'CL-ACCESS',service:'New Build',brief:'',docs:[],milestones:[],events:[],mobilised:false});
+    localStorage.setItem('okike_admin_prototype_v1',JSON.stringify(data));
+    navigate('Home','Project','OK-ACCESS-001','Finance');
+  });
+  assert(await page.locator('.access-denied').count()===1,'Direct cross-department Home project tab must be restricted');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert((await page.evaluate(()=>window.OKIKE_DEMO_ACCESS.getSession())).department==='Design','Selected department did not persist across refresh');
+  await openSection('Design');
+  assert(!(await page.locator('.access-denied').count()),'Design workspace should be accessible');
   assert(errors.length===0,'Browser errors: '+errors.join('; '));
-  console.log('PASS: One department scrollbar, stacked metrics, Shared Projects navigation, department routing, Home, theme, reset and Finance ownership.');
+  console.log('PASS: Branded demo access, role-restricted navigation, General access, logout, persistence, departmental workflows, scrolling, Home and Reset Demo.');
  }finally{
   await browser.close();
  }
