@@ -26,8 +26,10 @@ jobs:
       - name: Install browser test dependencies
         run: |
           npm install --no-save playwright@1.58.2
-          npx playwright install --with-deps chromium
+          test -x /usr/bin/google-chrome || test -x /usr/bin/google-chrome-stable
       - name: Run department workflow browser smoke test
+        env:
+          OKIKE_CHROMIUM: /usr/bin/google-chrome
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/okike-http.log 2>&1 &
           node integration-candidate/tests/smoke.cjs
