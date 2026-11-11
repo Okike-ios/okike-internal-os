@@ -1,13 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OKIKE Internal OS — Integrated Workspace</title>
-  <meta http-equiv="refresh" content="0; url=integration-candidate/index.html">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#29231F">
+<title>OKIKE Internal OS — Loading</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:#29231F;color:#F5F3ED;font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center}
+main{text-align:center;padding:40px 22px}
+.logo{font-weight:700;font-size:clamp(44px,8vw,65px);letter-spacing:.15em}
+.subtitle{margin-top:6px;color:#C96A32;letter-spacing:.28em;font-size:12px;font-weight:700}
+.spinner{display:block;width:34px;height:34px;margin:38px auto 18px;border:3px solid #62574e;border-top-color:#C96A32;border-radius:50%;animation:turn .8s linear infinite}
+@keyframes turn{to{transform:rotate(360deg)}}
+.status{font-size:14px;color:#c7bfb5}
+.fallback{display:block;margin-top:38px;color:#dcb398;font-size:12px}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none;border-top-color:#C96A32}}
+</style>
 </head>
 <body>
-  <p>Opening OKIKE Internal OS integrated workspace...</p>
-  <p><a href="integration-candidate/index.html">Open OKIKE Internal OS</a></p>
+<main role="status" aria-live="polite">
+<div class="logo">OKIKE</div>
+<div class="subtitle">INTERNAL OS</div>
+<span class="spinner" aria-hidden="true"></span>
+<div class="status">Opening your workspace…</div>
+<a class="fallback" href="integration-candidate/index.html">Continue to OKIKE</a>
+</main>
+<script>
+// Keep a branded page visible while transferring to the single application entry point.
+requestAnimationFrame(()=>window.location.replace('integration-candidate/index.html'));
+</script>
 </body>
 </html>

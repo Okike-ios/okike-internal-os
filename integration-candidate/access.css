@@ -1,0 +1,32 @@
+/* OKIKE Access Experience v0.1 — demonstration gate, not security. */
+body.access-pending #app,body.access-locked #app{visibility:hidden}
+body.access-locked,body.access-pending{overflow:hidden}
+.access-gate{position:fixed;inset:0;z-index:150;background:#F5F3ED;color:#353B36;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.access-gate[hidden]{display:none!important}
+.access-login{width:100%;max-width:425px;background:#fff;padding:36px;border:1px solid #DEDCD3;border-radius:16px;box-shadow:0 18px 60px rgba(41,35,31,.1)}
+.access-brand{text-align:center;margin-bottom:28px}.access-logo{font-size:37px;font-weight:800;letter-spacing:4px;color:#29231F}
+.access-brand small{font-size:11px;color:#C96A32;font-weight:700;letter-spacing:3px}
+.access-login h1{font-size:24px;margin:0 0 7px;text-align:center}.access-login .hint{text-align:center;color:#757970;line-height:1.5;font-size:13px;margin:0 0 25px}
+.access-field{display:block;margin:16px 0;font-size:13px;font-weight:700}.access-field span{display:block;margin-bottom:7px}
+.access-field input,.access-field select{width:100%;height:44px;padding:10px 13px;border:1px solid #D9D9D2;background:#fff;color:#353B36;border-radius:8px}
+.access-field input:focus,.access-field select:focus{border-color:#C96A32;outline:2px solid #C96A3240}
+.access-submit{display:block;width:100%;min-height:45px;border:0;background:#C96A32;color:#fff;font-weight:700;border-radius:8px;margin-top:22px}
+.access-submit:hover{background:#A95124}
+.access-disclaimer{font-size:11px;line-height:1.5;text-align:center;color:#85877F;margin:17px 0 0}
+.access-session{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.access-person{display:flex;flex-direction:column;text-align:right;gap:2px}
+.access-person strong{font-size:12px;color:var(--ink)}.access-person small{color:var(--sub);font-size:11px}
+.access-user-button{border:1px solid var(--line);border-radius:9px;padding:7px 11px;background:var(--panel);color:var(--ink);cursor:pointer}
+.access-user-button:hover{border-color:var(--orange)}
+.access-profile-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:80;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.13);min-width:205px;padding:8px}
+.access-profile-menu[hidden]{display:none!important}
+.access-profile-menu p{font-size:12px;margin:7px 9px;color:var(--sub);overflow-wrap:anywhere}
+.access-profile-menu button{width:100%;text-align:left;background:transparent;border:0;border-radius:6px;color:var(--ink);padding:10px;font-size:13px}
+.access-profile-menu button:hover{background:var(--soft)}
+.access-header{position:relative}
+.access-denied{max-width:620px;margin:8vh auto;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:46px 32px;text-align:center}
+.access-denied .access-lock{font-size:35px;color:var(--orange);display:block;margin-bottom:14px}
+.access-denied h1{margin:0 0 12px;font-size:24px}.access-denied p{color:var(--sub);line-height:1.6}
+.access-denied .btn{margin-top:16px}
+body[data-theme=dark] .access-denied{background:var(--panel)}
+@media(max-width:700px){.access-login{padding:25px 20px}.access-person{display:none}.access-session{gap:4px}.access-user-button{padding:7px}}
