@@ -25,6 +25,12 @@ function meta(id){
   const s=(p.docs||[]).filter(d=>d.type==='SOW').at(-1);
   m.sow=s?.status||'Draft';
   m.mobilised=!!p.mobilised;
+ }else{
+  // A Finance-only seeded balance is not approval of a project quotation or SOW.
+  m.accepted=false;
+  m.quotation=0;
+  m.sow='Draft';
+  m.mobilised=false;
  }
  return m;
 }
