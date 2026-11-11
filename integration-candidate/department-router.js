@@ -33,7 +33,7 @@
  function dispatchModule(){
    const f=document.getElementById('okikeDepartmentFrame');
    if(!f)return;
-   const send=()=>{try{f.contentWindow.postMessage({type:'okike:department-context',department:f.dataset.workspace,role:f.dataset.role,page:f.dataset.target,projectId:f.dataset.project||null},location.origin)}catch(e){console.warn('Department context unavailable',e)}};
+   const send=()=>{try{f.contentWindow.postMessage({type:'okike:department-context',department:f.dataset.workspace,role:f.dataset.role,page:f.dataset.target,projectId:f.dataset.project||null,theme:prefs.theme},location.origin)}catch(e){console.warn('Department context unavailable',e)}};
    f.addEventListener('load',send);
    if(f.contentDocument?.readyState==='complete')send();
  }
