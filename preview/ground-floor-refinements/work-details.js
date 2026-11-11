@@ -914,7 +914,7 @@ function attachDetailListeners() {
         activityData.details[field.dataset.detail] =
           field.value;
         activityData.confirmed=false;
-        if(hasDemoResource())updateDemoResource();
+        if(hasDemoResource()){if(field.dataset.detail==="spec")renderDemoResource();else updateDemoResource();}
 
         clearInvalidState(field);
         saveProjectData();
