@@ -20,7 +20,10 @@
   const assigned=queue().filter(item=>item.dept===currentRole);
   const projects=state.projects||[];
   return heading(currentDepartment+' workspace','Department assignments and project handoffs.')
-   +'<div class="metrics"><div class="metric"><strong>'+assigned.length+'</strong><small>Assigned actions</small></div><div class="metric"><strong>'+projects.length+'</strong><small>Shared projects</small></div></div>'
+   +'<div class="metrics department-metrics">'
+   +'<div class="metric department-metric"><span class="metric-label">Assigned actions</span><strong>'+String(assigned.length).padStart(2,'0')+'</strong></div>'
+   +'<button type="button" class="metric department-metric department-metric-link" data-page="Projects" title="View shared projects"><span class="metric-label">Shared projects</span><strong>'+String(projects.length).padStart(2,'0')+'</strong></button>'
+   +'</div>'
    +'<section class="card pad"><div class="row"><h2>Department work queue</h2><button class="btn" data-page="Projects">View projects</button></div>'
    +actionsTable(assigned)+'</section>';
  };
@@ -61,12 +64,39 @@
  heading=function(title,description,action){
    return nativeHeading(title,description,action).replace('Administration / ',currentDepartment+' / ');
  };
+ function publishHeight(){
+  try{
+   const app=document.getElementById('app');
+   const h=Math.ceil(Math.max(
+    app?.getBoundingClientRect().height||0,
+    app?.scrollHeight||0,
+    document.body.scrollHeight||0,
+    document.documentElement.scrollHeight||0
+   ));
+   if(h>0)parent.postMessage({type:'okike:department-height',height:h},location.origin);
+  }catch(e){warn('Could not measure department height: '+e.message)}
+ }
+ let resizePending=false;
+ function scheduleHeight(){
+  if(resizePending)return;
+  resizePending=true;
+  requestAnimationFrame(()=>{resizePending=false;publishHeight()});
+ }
+ if(typeof ResizeObserver!=='undefined'){
+  const observer=new ResizeObserver(scheduleHeight);
+  observer.observe(document.body);
+  const app=document.getElementById('app');
+  if(app)observer.observe(app);
+ }
+ window.addEventListener('load',scheduleHeight);
+ window.addEventListener('resize',scheduleHeight);
  render=function(){
   role=currentRole;
   nativeRender();
   document.body.classList.add('embedded','department-contained');
   const select=document.getElementById('role');
   if(select)select.remove();
+  scheduleHeight();
  };
  const nativeMutate=mutate;
  mutate=function(fn){
