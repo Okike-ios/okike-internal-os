@@ -5,6 +5,7 @@ on:
       - integration/department-ownership-v02
       - integration/home-theme-reset-v03
       - fix/department-scroll-metrics-v04
+      - feature/demo-login-access-v05
   pull_request:
     paths:
       - 'integration-candidate/**'
