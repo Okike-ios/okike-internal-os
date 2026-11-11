@@ -72,14 +72,16 @@
   assert(await page.locator('#acRole').count()===0,'Finance testing role selector present');
   assert(await page.locator('#okikeDepartmentFrame').count()===0,'Finance should not open Administration iframe');
   const snapshot=await page.evaluate(()=>{
-    const home=state.projects[0];
-    const admin={version:1,projects:[{id:home.id,briefRevision:2,mobilised:false,docs:[{type:'Estimate quotation',status:'Accepted',total:912345},{type:'SOW',status:'Client approved'}]}]};
+    const admin={version:1,clients:[{id:'CL-TEST-01',name:'Test Client'}],enquiries:[],tasks:[],projects:[{id:'OK-TEST-001',name:'Test Project',clientId:'CL-TEST-01',brief:'Test scope',service:'New Build',briefRevision:2,mobilised:false,docs:[{type:'Estimate quotation',status:'Accepted',total:912345},{type:'SOW',status:'Client approved'}],milestones:[],events:[]}]};
     localStorage.setItem('okike_admin_prototype_v1',JSON.stringify(admin));
-    return {id:home.id,meta:meta(home.id)};
+    return {id:'OK-TEST-001',meta:meta('OK-TEST-001')};
   });
   assert(snapshot.meta.quotation===912345,'Finance does not read authoritative accepted quotation');
   assert(snapshot.meta.sow==='Client approved','Finance does not read authoritative SOW state');
   assert(snapshot.meta.cycle===2,'Finance job cycle did not sync');
+  await openSection('Home');
+  assert(await page.evaluate(()=>state.projects.length===1&&state.projects[0].id==='OK-TEST-001'),'Home did not refresh canonical Administration project identity');
+  await openSection('Finance');
   await openSection('Settings');
   await page.locator('[data-reset-demo]').click();
   assert(await page.locator('[data-confirm-reset]').count()===1,'Reset Demo confirmation missing');
