@@ -27,7 +27,7 @@
   const role=roleFor[section];
   const target=(section==='Administration'
     ? ({'My Workspace':'My Workspace','My Tasks':'My Tasks','Team Workspace':'Team Workspace','Enquiries & Assessment':'Enquiries & Assessment','Clients':'Clients','Projects':'Projects','Company Documents':'Company Documents','Messages':'Messages','Policies & SOPs':'Policies & SOPs','Reporting Structure':'Reporting Structure','Staff Directory':'Staff Directory'}[page]||'My Workspace')
-    : page.includes('Projects')||page==='Client Records'||page==='Client Briefs'||page==='Design Revisions'||page==='SOW & Mobilisation'||page==='Project Tracker'?'Projects':'My Tasks');
+    : page.includes('Dashboard')?'My Workspace':page.includes('Projects')||page==='Client Records'||page==='Client Briefs'||page==='Design Revisions'||page==='SOW & Mobilisation'||page==='Project Tracker'?'Projects':'My Tasks');
   return '<iframe class="department-module" id="okikeDepartmentFrame" title="'+escapeHtml(section)+' operational workspace" src="modules/administration/index.html" data-workspace="'+escapeHtml(section)+'" data-role="'+role+'" data-target="'+target+'" data-project="'+escapeHtml(projectId||'')+'"></iframe>';
  }
  function dispatchModule(){
