@@ -1097,3 +1097,26 @@ button {
 .demo-resource-panel .sub-notice{border-left:3px solid #C96A32;padding:10px 12px;background:#FAF5EF;line-height:1.5}
 .demo-resource-panel #demoTotal{font-size:20px;color:#C96A32;font-variant-numeric:tabular-nums}
 .demo-resource-panel .demo-spec-label{margin:10px 0;font-size:13px}
+
+/* OK-SS-001: Superstructure activity + floor + wall work details */
+.super-floor-config,.super-wall-card,.super-new-floor{border:1px solid var(--border);border-radius:12px;background:var(--white)}
+.super-floor-config{padding:18px;margin:0 0 18px}
+.super-floor-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+.super-floor-chips button.super-active{background:var(--orange);border-color:var(--orange);color:#fff}
+.super-new-floor{padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.super-new-floor[hidden]{display:none}
+.super-new-floor h3,.super-new-floor .sub-notice{grid-column:1/-1}
+.super-new-floor label,.super-wall-grid label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--charcoal)}
+.super-new-floor input,.super-new-floor select,.super-wall-grid input,.super-wall-grid select{background:var(--white);border:1px solid var(--border);border-radius:7px;color:var(--charcoal);padding:10px;width:100%;min-width:0;font:inherit}
+.super-new-floor .super-floor-actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.super-wall-controls,.super-wall-card{padding:18px;margin:14px 0}
+.super-wall-heading,.super-segment-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.super-wall-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.super-segment{border-top:1px solid var(--border);padding:14px 0}
+.super-segment-heading{border-top:1px solid var(--border);padding-top:15px}
+.super-segment h4,.super-segment strong{font-size:13px}
+.super-wall-result{background:var(--ivory);border:1px solid var(--border);border-radius:9px;padding:14px;margin:10px 0 16px}
+.super-wall-result strong{font-size:15px;color:var(--charcoal)}
+.super-wall-result p{margin-top:6px}
+.super-wall-result .sub-notice{margin-top:10px}
+@media(max-width:860px){.super-new-floor,.super-wall-grid{grid-template-columns:1fr}}
