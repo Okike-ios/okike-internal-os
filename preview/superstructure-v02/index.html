@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superstructure Branch Preview | OKIKE</title>
+  <link rel="stylesheet" href="work-details.css">
+  <link rel="stylesheet" href="../../OKIKE-IOS-Quotation-v04/okike-shared.css">
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <aside class="sidebar okike-shared-sidebar" id="okikeSharedSidebar" aria-label="OKIKE Internal OS navigation"></aside>
+
+  <main class="main-content">
+
+    <header class="topbar">
+      <div class="breadcrumb">
+        <span>Quotations</span>
+        <span class="separator">/</span>
+        <strong>Work Details</strong>
+      </div>
+
+      <div class="topbar-right">
+        <div class="save-status">
+          <span class="status-dot"></span>
+          <span id="saveStatus">Draft restored</span>
+        </div>
+        <button type="button" class="icon-button">···</button>
+      </div>
+    </header>
+
+    <div class="page-container">
+
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">SUPERSTRUCTURE v0.2 — SEPARATE TEST PREVIEW</span>
+          <h1>Work Details</h1>
+          <p>Test Superstructure floors, walls, resource quantities, and all nine activities. No quotation data is shared with the approved main application.</p>
+        </div>
+        <span class="draft-badge">● Draft</span>
+      </div>
+
+      <section class="progress-section">
+        <div class="progress-top">
+          <span>Quotation setup</span>
+          <strong>03 <span>/ 18</span></strong>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-labels">
+          <span class="completed">Project Information</span>
+          <span class="completed">Construction Scope</span>
+          <span class="current">Work Details</span>
+        </div>
+      </section>
+
+      <!-- STAGE LIST -->
+      <section id="stageView" class="view-panel">
+
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">SELECTED CONSTRUCTION STAGES</span>
+            <h2>Your project scope</h2>
+            <p>Open a construction stage to define its individual activities.</p>
+          </div>
+          <a href="construction-scope.html" class="text-link">Edit scope</a>
+        </div>
+
+        <div id="stageList" class="stage-list"></div>
+
+      </section>
+
+      <!-- ACTIVITY LIST -->
+      <section id="activityView" class="view-panel" hidden>
+
+        <button type="button" class="back-button" id="backToStages">
+          ← All construction stages
+        </button>
+
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow" id="activityEyebrow">CONSTRUCTION STAGE</span>
+            <h2 id="activityStageTitle"></h2>
+            <p>Select the activities that apply to this stage.</p>
+          </div>
+          <div class="selection-counter">
+            <strong id="activityProgress">0</strong>
+            <span>completed</span>
+          </div>
+        </div>
+
+        <div id="foundationSelector" hidden></div>
+        <div id="activityList" class="activity-list"></div>
+
+      </section>
+
+      <!-- ACTIVITY WIZARD -->
+      <section id="wizardView" class="view-panel" hidden>
+
+        <button type="button" class="back-button" id="backToActivities">
+          ← Back to activities
+        </button>
+
+<div class="activity-siblings" aria-label="Move between activities">
+          <button type="button" data-sibling="-1">← Previous activity</button>
+          <span class="activity-place" aria-live="polite"></span>
+          <button type="button" data-sibling="1">Next activity →</button>
+        </div>
+        <div class="section-heading wizard-heading">
+          <div>
+            <span class="eyebrow" id="wizardStageName">PRELIMINARIES & SITE PREPARATION</span>
+            <h2 id="wizardTitle">Site Clearing</h2>
+            <p>Complete the information below to calculate this activity.</p>
+          </div>
+          <span class="draft-badge" id="activityStatus">In progress</span>
+        </div>
+
+        <div class="wizard-card">
+
+          <div class="wizard-progress">
+            <div class="wizard-progress-top">
+              <span id="stepName">Work Details</span>
+              <strong id="stepCount">01 / 04</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="stepProgress"></div>
+            </div>
+            <div class="wizard-step-labels">
+              <span class="active">Work Details</span>
+              <span>Materials & Equipment</span>
+              <span>Labour</span>
+              <span>Other Costs</span>
+            </div>
+          </div>
+
+          <div id="stepContent"></div>
+
+          <div class="wizard-actions">
+            <button type="button" class="secondary-button" id="previousStep">
+              Back
+            </button>
+            <button type="button" class="primary-button" id="nextStep">
+              Continue →
+            </button>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- REVIEW -->
+      <section id="reviewView" class="view-panel" hidden>
+
+        <button type="button" class="back-button" id="backToWizard">
+          ← Back to costing
+        </button>
+
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ACTIVITY REVIEW</span>
+            <h2>Review Site Clearing</h2>
+            <p>Check the work details and costs before confirming this activity.</p>
+          </div>
+        </div>
+
+<div class="activity-siblings" aria-label="Move between activities">
+          <button type="button" data-sibling="-1">← Previous activity</button>
+          <span class="activity-place" aria-live="polite"></span>
+          <button type="button" data-sibling="1">Next activity →</button>
+        </div>
+        <div id="reviewContent" class="review-card"></div>
+
+        <div class="review-actions">
+          <button type="button" class="secondary-button" id="editActivity">
+            Return to edit
+          </button>
+          <button type="button" class="primary-button" id="confirmActivity">
+            Confirm Site Clearing →
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+  // This preview is served on a separate origin from the OKIKE GitHub Pages site.
+  // Seed once; preserve all subsequent test entries.
+  var key="okike_superstructure_preview_v02_only";
+  try{
+    var project=JSON.parse(localStorage.getItem(key)||"null");
+    if(!project || typeof project!=="object" || !project.constructionScope){
+      project={constructionScope:{stages:["Superstructure"]},workDetails:{activities:{}},projectInformation:{projectName:"Superstructure testing — not for client quotation"}};
+      localStorage.setItem(key,JSON.stringify(project));
+    }else if(!Array.isArray(project.constructionScope.stages)||!project.constructionScope.stages.includes("Superstructure")){
+      project.constructionScope.stages=Array.isArray(project.constructionScope.stages)?project.constructionScope.stages:[];
+      project.constructionScope.stages.push("Superstructure");
+      localStorage.setItem(key,JSON.stringify(project));
+    }
+  }catch(e){console.error("Unable to initialize Superstructure preview:",e);}
+})();
+</script>
+<script src="work-details.js?v=ss02"></script>
+<script src="../../OKIKE-IOS-Quotation-v04/Quotation-new build/okike-shared.js"></script>
+</body>
+</html>
