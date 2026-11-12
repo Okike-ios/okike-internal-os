@@ -3175,7 +3175,7 @@ function renderSuperWalls(){
     superSelect("Wall position",w.position,["Interior","Exterior"],'data-super-wall="'+i+'" data-key="position"')+
     superSelect("Measurement method",w.lengthMethod,["segments","total"],'data-super-wall="'+i+'" data-key="lengthMethod"')+
     '</div>'+specific+
-    '<div class="super-segment-heading"><h4>'+ (w.lengthMethod==="total"?"Overall wall dimensions":"Segments / grid-line measurements") +'</h4><button type="button" class="secondary-button" data-add-segment="'+i+'">+ Add segment</button></div>'+
+    '<div class="super-segment-heading"><h4>'+ (w.lengthMethod==="total"?"Overall wall dimensions":"Segments / grid-line measurements") +'</h4>'+(w.lengthMethod==="total"?"":'<button type="button" class="secondary-button" data-add-segment="'+i+'">+ Add segment</button>')+'</div>'+
     rows+
     '<div class="super-wall-result"><strong>Measured wall: '+(result.error?"Incomplete":formatMeasure(result.net)+" m² net")+'</strong>'+
     '<p>Calculated material: '+(result.error?"—":formatMeasure(result.quantity)+" "+safe(result.unit))+'</p>'+
@@ -3185,7 +3185,8 @@ function renderSuperWalls(){
  container.querySelectorAll("[data-super-wall]").forEach(el=>{
   const handler=()=>{const w=walls[Number(el.dataset.superWall)],key=el.dataset.key;w[key]=el.value;
    if(key==="blockSize"){const b=SUPER_BLOCK_SIZES.find(x=>x[0]===el.value);if(b&&b[1]){w.blockLength=String(b[1]);w.blockHeight=String(b[2]);w.blockThickness=String(b[3]);}}
-   superDraftChanged();if(["type","blockSize","supply","lengthMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
+   superDraftChanged();if(key==="lengthMethod"&&el.value==="total")w.segments=(w.segments||[]).slice(0,1);
+   if(["type","blockSize","supply","lengthMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
   };
   el.addEventListener(el.tagName==="SELECT"?"change":"input",handler);
  });
