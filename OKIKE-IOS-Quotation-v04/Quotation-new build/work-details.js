@@ -3099,6 +3099,8 @@ function renderSuperstructureDetails(){
    stepContent.innerHTML=header+'<div class="super-wall-controls"><h3>Wall systems</h3><p class="sub-notice">Add one or more wall types. Measurements are recorded by grid reference or overall segments, with openings deducted explicitly.</p><button type="button" class="secondary-button" id="superAddWall">+ Add wall type</button></div><div id="superWalls"></div>';
    renderSuperWalls();
    stepContent.querySelector("#superAddWall").onclick=()=>{rec.walls ||= [];rec.walls.push(newWall());superDraftChanged();renderSuperWalls();};
+ }else if(currentActivity==="Door and window opening formation"){
+    renderSuperstructureOpeningDetails(header,rec);
  }else{
     renderSuperstructureActivityDetails(header,rec);
  }
@@ -3723,6 +3725,142 @@ function superWallQuantity(w){
   out.materials=[{name:"In-situ wall concrete",quantity:out.quantity,unit:"m³"}];
  }
  return out;
+}
+
+function ssOpeningNew(){
+ return {id:"opening-"+Math.random().toString(36).slice(2,10),type:"Door",reference:"",lintel:"Not required",
+   concreteGrade:"",formworkSystem:"Area only",formPanelWidth:"",formPanelLength:"",rebar:{method:"none"},
+   concreteMix:{type:"ready"},groups:[{ref:"",width:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""}]};
+}
+function ssOpeningTakeoff(o){
+ let count=0,openingArea=0,lintelVolume=0,formwork=0;
+ if(!o.groups?.length)return {error:"Add at least one opening measurement group."};
+ for(const row of o.groups){
+  const n=Number(row.count),w=Number(row.width),h=Number(row.height);
+  if(!(n>0&&Number.isInteger(n)&&w>0&&h>0))return {error:"Complete opening width, height and count."};
+  count+=n;openingArea+=n*w*h;
+  if(o.lintel==="In-situ reinforced concrete lintel"){
+   const l=Number(row.lintelLength),bw=Number(row.lintelWidth)/1000,d=Number(row.lintelDepth)/1000;
+   if(!(l>0&&bw>0&&d>0))return {error:"Enter the specified in-situ lintel length (m), width (mm) and depth (mm)."};
+   lintelVolume+=bw*d*l*n;
+   // Conventional lintel soffit and two sides, if exposed. End faces not assumed.
+   formwork+=(bw+2*d)*l*n;
+  }
+ }
+ const materials=[];
+ if(o.lintel==="In-situ reinforced concrete lintel"){
+  materials.push({name:"In-situ lintel concrete "+(o.concreteGrade||""),quantity:lintelVolume,unit:"m³"});
+  materials.push({name:"Lintel formwork contact area",quantity:formwork,unit:"m²"});
+  if(ssPositive(o.formPanelLength)&&ssPositive(o.formPanelWidth)&&o.formworkSystem!=="Area only")
+    materials.push({name:o.formworkSystem+" lintel formwork panels",quantity:Math.ceil(formwork/(Number(o.formPanelLength)*Number(o.formPanelWidth))),unit:"panels"});
+  const steel=ssRebarQuantity(o.rebar,count);
+  if(steel.error)return {error:steel.error};
+  materials.push(...steel.materials);
+  materials.push(...ssMixComponents(lintelVolume,o.concreteMix,"Lintel concrete mix"));
+ }else if(o.lintel!=="Not required"){
+  materials.push({name:o.lintel+" — "+(o.reference||o.type),quantity:count,unit:"lintels"});
+ }
+ return {count,openingArea,lintelVolume,formwork,materials};
+}
+function renderSuperstructureOpeningDetails(header,rec){
+ rec.openingTypes ||= [];
+ stepContent.innerHTML=header+'<section class="super-detail-card"><div class="super-detail-head"><div><h3>Doors, windows and their lintels</h3>'+
+ '<p>Add different opening types. Each type can have several grid/location measurement groups while sharing lintel specifications.</p></div>'+
+ '<button class="secondary-button" type="button" id="ssAddOpening">+ Add opening type</button></div><div id="ssOpeningTypes"></div>'+
+ '<p class="sub-notice">Deduct openings only in the corresponding Wall measurement once. No automatic deduction will be applied to Walls from this schedule.</p></section>';
+ stepContent.querySelector("#ssAddOpening").onclick=()=>{
+  rec.openingTypes.push(ssOpeningNew());superDraftChanged();renderSuperOpeningTypes();
+ };
+ renderSuperOpeningTypes();
+}
+function renderSuperOpeningTypes(){
+ const host=stepContent.querySelector("#ssOpeningTypes");if(!host)return;
+ const rec=superFloorDetails(getSuperConfig().active),types=rec.openingTypes||[];
+ host.innerHTML=types.length?types.map((o,i)=>{
+  const r=ssOpeningTakeoff(o),attr=k=>'data-ss-opening="'+i+'" data-ss-field="'+k+'"';
+  let html='<div class="super-measurement"><div class="super-row-head"><h3>Opening type '+(i+1)+'</h3><button class="secondary-button" type="button" data-ss-remove-opening="'+i+'">Remove type</button></div>'+
+   '<div class="super-detail-grid">'+
+   ssChoice("Opening type",o.type,["Door","Window","Vent","Other"],attr("type"))+
+   ssField("Type mark / drawing reference",o.reference||"",attr("reference"))+
+   ssChoice("Lintel type",o.lintel,["Not required","In-situ reinforced concrete lintel","Precast concrete lintel","Steel lintel","Other"],attr("lintel"));
+  if(o.lintel==="In-situ reinforced concrete lintel")html+=
+   ssField("Concrete grade",o.concreteGrade||"",attr("concreteGrade"))+
+   ssChoice("Formwork system",o.formworkSystem||"Area only",["Area only","Timber / plywood","Steel panel","Proprietary panel"],attr("formworkSystem"))+
+   ssField("Formwork panel width (m)",o.formPanelWidth||"",attr("formPanelWidth"),"number")+
+   ssField("Formwork panel length (m)",o.formPanelLength||"",attr("formPanelLength"),"number");
+  html+='</div><div class="super-segment-heading"><h4>Opening measurement groups</h4><button class="secondary-button" type="button" data-ss-add-opening-group="'+i+'">+ Add measurement group</button></div>';
+  html+=(o.groups||[]).map((g,j)=>{
+   const gat=k=>'data-ss-opening-group="'+i+'" data-ss-group="'+j+'" data-ss-group-key="'+k+'"';
+   return '<div class="super-segment"><div class="super-row-head"><strong>Group '+(j+1)+'</strong><button class="secondary-button" type="button" data-ss-remove-opening-group="'+i+'" data-ss-group="'+j+'">Remove</button></div><div class="super-detail-grid">'+
+   ssField("Grid / location",g.ref||"",gat("ref"))+
+   ssField("Opening width (m)",g.width||"",gat("width"),"number")+
+   ssField("Opening height (m)",g.height||"",gat("height"),"number")+
+   ssField("No. of openings",g.count||"1",gat("count"),"number")+
+   (o.lintel==="In-situ reinforced concrete lintel"?
+     ssField("Specified lintel length (m)",g.lintelLength||"",gat("lintelLength"),"number")+
+     ssField("Lintel width (mm)",g.lintelWidth||"",gat("lintelWidth"),"number")+
+     ssField("Lintel depth (mm)",g.lintelDepth||"",gat("lintelDepth"),"number"):"")+
+   '</div></div>';
+  }).join("");
+  if(o.lintel==="In-situ reinforced concrete lintel"){
+   // Rebar schedule is shared across this opening type; item counts represent bars per lintel.
+   html+='<div class="super-resource-subpanel"><h4>Lintel reinforcement and concrete material breakdown</h4>'+
+    ssChoice("Reinforcement method",o.rebar?.method||"none",["none","schedule","guided"],attr("rebar.method"))+
+    (o.rebar?.method==="guided"?'<div class="super-detail-grid">'+
+     ssChoice("Main bar diameter (mm)",o.rebar?.mainDiameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.mainDiameter"))+
+     ssField("Bars per lintel",o.rebar?.mainBars||"",attr("rebar.mainBars"),"number")+
+     ssField("Scheduled cut length (m)",o.rebar?.mainCutLength||"",attr("rebar.mainCutLength"),"number")+
+     ssChoice("Link diameter (mm)",o.rebar?.linkDiameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.linkDiameter"))+
+     ssField("Link spacing (mm)",o.rebar?.linkSpacing||"",attr("rebar.linkSpacing"),"number")+
+     ssField("Length over which links occur (m)",o.rebar?.elementLength||"",attr("rebar.elementLength"),"number")+
+     ssField("Scheduled link cut length (m)",o.rebar?.linkCutLength||"",attr("rebar.linkCutLength"),"number")+'</div>':
+     o.rebar?.method==="schedule"?(o.rebar?.bars||[]).map((b,k)=>'<div class="super-schedule-row"><div class="super-detail-grid">'+
+      ssField("Bar mark",b.mark||"",attr("rebar.bars."+k+".mark"))+
+      ssChoice("Bar diameter (mm)",b.diameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.bars."+k+".diameter"))+
+      ssField("Cut length (m)",b.cutLength||"",attr("rebar.bars."+k+".cutLength"),"number")+
+      ssField("Bars per lintel",b.count||"",attr("rebar.bars."+k+".count"),"number")+
+      '</div><button class="secondary-button" type="button" data-ss-remove-opening-bar="'+i+'" data-ss-bar="'+k+'">Remove bar</button></div>').join("")+
+      '<button class="secondary-button" type="button" data-ss-add-opening-bar="'+i+'">+ Add bar schedule mark</button>':"")+
+    '<div class="super-detail-grid">'+
+    ssChoice("Concrete material supply",o.concreteMix?.type||"ready",["ready","site"],attr("concreteMix.type"))+
+    ssField("Cement parts",o.concreteMix?.cement||"",attr("concreteMix.cement"),"number")+
+    ssField("Sand parts",o.concreteMix?.sand||"",attr("concreteMix.sand"),"number")+
+    ssField("Gravel parts",o.concreteMix?.gravel||"",attr("concreteMix.gravel"),"number")+
+    ssField("Other parts",o.concreteMix?.other||"",attr("concreteMix.other"),"number")+
+    ssField("Verified dry mix yield factor",o.concreteMix?.yieldFactor||"",attr("concreteMix.yieldFactor"),"number")+
+    '</div></div>';
+  }
+  return html+'<div class="super-wall-result" data-ss-opening-output="'+i+'">'+
+    (r.error?safe(r.error):formatMeasure(r.count)+" openings · "+formatMeasure(r.openingArea)+" m² opening area · "+formatMeasure(r.lintelVolume)+" m³ in-situ lintel concrete")+
+   '</div></div>';
+ }).join(""):'<p class="sub-notice">No opening types added yet. Add a door or window type.</p>';
+ const update=()=>{superDraftChanged();types.forEach((o,i)=>{
+  const el=host.querySelector('[data-ss-opening-output="'+i+'"]');if(!el)return;
+  const r=ssOpeningTakeoff(o);el.textContent=r.error?r.error:formatMeasure(r.count)+" openings · "+formatMeasure(r.openingArea)+" m² opening area · "+formatMeasure(r.lintelVolume)+" m³ in-situ lintel concrete";
+ });};
+ host.querySelectorAll("[data-ss-opening]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+  const o=types[Number(el.dataset.ssOpening)],key=el.dataset.ssField;ssSetNested(o,key,el.value);
+  if(key==="lintel"||key==="rebar.method"){update();renderSuperOpeningTypes();}else update();
+ }));
+ host.querySelectorAll("[data-ss-opening-group]").forEach(el=>el.addEventListener("input",()=>{
+  types[Number(el.dataset.ssOpeningGroup)].groups[Number(el.dataset.ssGroup)][el.dataset.ssGroupKey]=el.value;update();
+ }));
+ host.querySelectorAll("[data-ss-add-opening-group]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssAddOpeningGroup)].groups.push({ref:"",width:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""});update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening-group]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssRemoveOpeningGroup)].groups.splice(Number(b.dataset.ssGroup),1);update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening]").forEach(b=>b.onclick=()=>{
+  types.splice(Number(b.dataset.ssRemoveOpening),1);update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-add-opening-bar]").forEach(b=>b.onclick=()=>{
+  const o=types[Number(b.dataset.ssAddOpeningBar)];o.rebar ||= {method:"schedule",bars:[]};o.rebar.bars ||= [];
+  o.rebar.bars.push({mark:"",diameter:"",cutLength:"",count:""});update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening-bar]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssRemoveOpeningBar)].rebar.bars.splice(Number(b.dataset.ssBar),1);update();renderSuperOpeningTypes();
+ });
 }
 
 renderStages();
