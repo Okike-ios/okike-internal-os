@@ -3481,19 +3481,21 @@ function ssMixComponents(volume,mix,purpose){
 }
 function ssElementMaterials(activity,row,specs){
  const base=ssElementQuantity(activity,row.shape==="Square"?{...row,depth:row.width}:row);if(base.error)return {...base,materials:[]};
- const result=[{name:"Concrete "+(specs?.grade||"grade unspecified"),quantity:base.quantity,unit:"m³"}];
+ const site=specs?.method==="Site-mixed";
+ const mix=site?ssMixComponents(base.quantity,{...row.concreteMix,type:"site"},"Concrete mix"):[];
+ // Concrete physical volume is reported in Work Details. Only ready-mix volume OR
+ // site-mix ingredients may be priced in Materials, never both.
+ const result=site?[...mix]:[{name:"Ready-mix concrete "+(specs?.grade||"grade unspecified"),quantity:base.quantity,unit:"m³"}];
  if(base.formwork>0){
-  result.push({name:"Formwork contact area",quantity:base.formwork,unit:"m²"});
   const fw=row.formwork||{},size=Number(fw.panelWidth)*Number(fw.panelLength);
   if(fw.system&&fw.system!=="Area only"&&size>0){
    const reuse=ssPositive(fw.reuses)?Number(fw.reuses):1;
    result.push({name:fw.system+" panels (theoretical)",quantity:Math.ceil(base.formwork/(size*reuse)),unit:"panels"});
-  }
+  }else result.push({name:"Formwork contact area (measure)",quantity:base.formwork,unit:"m²"});
  }
  const rebar=ssRebarQuantity(row.rebar,Number(row.count));if(rebar.error)return {error:rebar.error,materials:result};
  result.push(...rebar.materials);
- if(specs?.method==="Site-mixed")result.push(...ssMixComponents(base.quantity,row.concreteMix,"Concrete mix"));
- return {...base,materials:result};
+ return {...base,materials:result,warning:site&&!mix.length?"Site mix proportions and verified yield factor are required for constituent material quantities.":""};
 }
 function ssField(label,value,attr,type="text"){return superInput(label,value,attr,type);}
 function ssChoice(label,value,values,attr){return superSelect(label,value,values,attr);}
@@ -3693,10 +3695,11 @@ function superWallQuantity(w){
   if(useCoverage&&!ssPositive(w.mortarConsumption))return {...out,error:"Enter verified mortar litres/m² or select Geometry mode."};
   const mortarVolume=useCoverage?net*Number(w.mortarConsumption)/1000:mortar;
   out.mortarVolume=mortarVolume;
-  out.materials.push({name:"Laying mortar (wet in-place volume)",quantity:mortarVolume,unit:"m³"});
   const mixParts=[["Cement",w.mortarCement],["Sand",w.mortarSand],["Other",w.mortarOther]].filter(([_,v])=>ssPositive(v));
   const parts=mixParts.reduce((a,[_,v])=>a+Number(v),0);
-  if(w.mortarMethod!=="Premixed laying mortar"&&parts>0&&ssPositive(w.mortarYield)){
+  if(w.mortarMethod==="Premixed laying mortar"){
+   out.materials.push({name:"Premixed laying mortar",quantity:mortarVolume,unit:"m³"});
+  }else if(parts>0&&ssPositive(w.mortarYield)){
    out.materials.push(...mixParts.map(([name,v])=>({name:"Laying mortar — "+name,quantity:mortarVolume*Number(w.mortarYield)*Number(v)/parts,unit:"m³ dry component"})));
   }
   if(w.supply==="In-house block production"){
@@ -3763,14 +3766,17 @@ function ssOpeningTakeoff(o){
  }
  const materials=[];
  if(o.lintel==="In-situ reinforced concrete lintel"){
-  materials.push({name:"In-situ lintel concrete "+(o.concreteGrade||""),quantity:lintelVolume,unit:"m³"});
-  materials.push({name:"Lintel formwork contact area",quantity:formwork,unit:"m²"});
+  // In-situ lintel concrete may be ready-mixed OR produced from constituent materials.
+  const site=o.concreteMix?.type==="site";
+  const componentRows=site?ssMixComponents(lintelVolume,o.concreteMix,"Lintel concrete mix"):[];
+  if(site)materials.push(...componentRows);
+  else materials.push({name:"Ready-mix lintel concrete "+(o.concreteGrade||""),quantity:lintelVolume,unit:"m³"});
   if(ssPositive(o.formPanelLength)&&ssPositive(o.formPanelWidth)&&o.formworkSystem!=="Area only")
     materials.push({name:o.formworkSystem+" lintel formwork panels",quantity:Math.ceil(formwork/(Number(o.formPanelLength)*Number(o.formPanelWidth))),unit:"panels"});
+  else materials.push({name:"Lintel formwork contact area (measure)",quantity:formwork,unit:"m²"});
   const steel=ssRebarQuantity(o.rebar,count);
   if(steel.error)return {error:steel.error};
   materials.push(...steel.materials);
-  materials.push(...ssMixComponents(lintelVolume,o.concreteMix,"Lintel concrete mix"));
  }else if(o.lintel!=="Not required"){
   materials.push({name:o.lintel+" — "+(o.reference||o.type),quantity:count,unit:"lintels"});
  }
