@@ -2870,5 +2870,374 @@ activityList.addEventListener("keydown",event=>{
  if(row&&activityList.contains(row)){event.preventDefault();openSelectedActivity(row.dataset.activity);}
 });
 // Start on the selected Construction Scope. Never preselect a demonstration activity.
+/* OK-SS-001 — Superstructure prototype. All floor records are independent.
+   Source-grounded geometric takeoff is NOT a purchasing allowance or structural design. */
+const superstructureActivities=[
+ "Structural layout and setting out",
+ "Reinforced concrete columns",
+ "Reinforced concrete beams",
+ "Walls",
+ "Door and window opening formation",
+ "Reinforced concrete stiffeners and wall ties",
+ "Wall reinforcement and anchoring",
+ "Concrete and masonry curing",
+ "Superstructure inspection and quality testing"
+];
+const SUPER_WALL_TYPES=[
+ "Non-load-bearing blockwork","Load-bearing blockwork","Brick masonry",
+ "Drywall partition","Precast wall panels","Cast-in-situ concrete wall","Other / custom"
+];
+const SUPER_BLOCK_SIZES=[
+ ["450 × 225 × 150 mm",450,225,150],
+ ["450 × 225 × 225 mm",450,225,225],
+ ["400 × 200 × 150 mm",400,200,150],
+ ["Custom block dimensions",0,0,0]
+];
+function isSuperstructure(){return currentStage==="Superstructure";}
+function getSuperConfig(){
+ const raw=getProjectData().workDetails?.superstructureConfig||{};
+ const floors=Array.isArray(raw.floors)&&raw.floors.length?raw.floors:[{id:"gf",label:"Ground Floor"}];
+ return {floors,active: floors.some(f=>f.id===raw.active)?raw.active:floors[0].id};
+}
+function setSuperActive(id){
+ const data=getProjectData();data.workDetails ||= {activities:{}};
+ const config=getSuperConfig();if(!config.floors.some(f=>f.id===id))return;
+ data.workDetails.superstructureConfig={...config,active:id};
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}
+function newWall(){
+ return {id:"wall-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6),type:"Non-load-bearing blockwork",
+  position:"Interior",supply:"Purchased blocks",lengthMethod:"segments",blockSize:SUPER_BLOCK_SIZES[0][0],
+  blockLength:"450",blockHeight:"225",blockThickness:"150",joint:"10",faces:"2",layers:"1",
+  boardLength:"",boardWidth:"",panelLength:"",panelWidth:"",wallThickness:"",
+  notes:"",cementPerBatch:"",sandPerBatch:"",blocksPerBatch:"",
+  segments:[{ref:"",length:"",height:"",openings:"0"}]};
+}
+function superFloorDetails(floorId){
+ const data=activityData.details;data.superstructure ||= {};
+ data.superstructure[floorId] ||= {notes:"",drawing:"",items:[],walls:[],generic:{length:"",width:"",height:"",count:"1",spec:""}};
+ return data.superstructure[floorId];
+}
+function cloneFloorSpec(original,full){
+ const clone=JSON.parse(JSON.stringify(original||{}));
+ if(full)return clone;
+ const result={notes:"",drawing:clone.drawing||"",generic:{length:"",width:"",height:"",count:"1",spec:clone.generic?.spec||""},items:[]};
+ result.walls=(clone.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2,10),
+   segments:[],notes:w.notes||""}));
+ return result;
+}
+function addSuperFloor(label,mode,source){
+ const clean=String(label||"").trim();
+ const config=getSuperConfig();
+ if(!clean||clean.length>70||config.floors.some(f=>f.label.toLowerCase()===clean.toLowerCase())){
+   showToast("Enter a unique floor name (up to 70 characters).");return false;
+ }
+ if(!["blank","specs","full"].includes(mode)){showToast("Choose how to create the floor.");return false;}
+ if(mode!=="blank"&&!config.floors.some(f=>f.id===source)){showToast("Select a source floor.");return false;}
+ if(currentActivity)saveProjectData();
+ const data=getProjectData(),id="floor-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+ data.workDetails ||= {activities:{}};
+ for(const name of superstructureActivities){
+  const rec=data.workDetails.activities?.[name];if(!rec)continue;
+  rec.details ||= {};rec.details.superstructure ||= {};
+  rec.details.superstructure[id]=mode==="blank"?{notes:"",drawing:"",walls:[],items:[],generic:{}}:cloneFloorSpec(rec.details.superstructure[source],mode==="full");
+  rec.confirmed=false;
+  // Generated rows must be recalculated and old floor-specific rates must not be duplicated.
+  rec.materials=(rec.materials||[]).filter(r=>r.source!=="okike-superstructure-measured");
+ }
+ config.floors.push({id,label:clean});
+ data.workDetails.superstructureConfig={...config,active:id};
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+ if(currentActivity&&isSuperstructure()){
+   const rec=data.workDetails.activities?.[currentActivity];
+   if(rec){activityData=JSON.parse(JSON.stringify(rec));activityData.confirmed=false;}
+ }
+ return true;
+}
+function renderSuperstructureSelector(){
+ const host=document.getElementById("foundationSelector");if(!host)return;
+ const config=getSuperConfig();host.hidden=false;
+ host.innerHTML='<div class="sub-config super-floor-config">'+
+ '<div class="sub-config-header"><div><h3>Superstructure floors</h3><p>All vertical structural activities are captured here. Each floor has independent measurements and costing.</p></div>'+
+ '<button type="button" class="secondary-button" id="superAddFloor">+ Add floor</button></div>'+
+ '<div class="super-floor-chips">'+config.floors.map(f=>'<button type="button" data-floor-open="'+safe(f.id)+'" class="secondary-button '+(f.id===config.active?"super-active":"")+'">'+safe(f.label)+'</button>').join("")+'</div>'+
+ '<div id="superFloorCreate" hidden class="super-new-floor"><label>New floor name<input id="superFloorName" placeholder="e.g. First Floor" maxlength="70"></label>'+
+ '<label>How should this floor be created?<select id="superCopyMode">'+option("blank","blank")+option("specs","")+option("full","")+'</select></label>'+
+ '<label id="superSourceGroup" hidden>Copy from floor<select id="superCopySource">'+config.floors.map(f=>option(f.id,config.active).replace('>'+safe(f.id)+'</option>','>'+safe(f.label)+'</option>')).join("")+'</select></label>'+
+ '<div class="super-floor-actions"><button type="button" class="primary-button" id="superCreateFloor">Create floor</button>'+
+ '<button type="button" class="secondary-button" id="superCancelFloor">Cancel</button></div>'+
+ '<p class="sub-notice">Start from scratch / Copy specifications only / Duplicate all measurements. Every new floor remains an unconfirmed draft.</p></div>'+
+ '<p class="sub-notice">The floor selection applies across all nine Superstructure activities.</p></div>';
+ const box=host.querySelector("#superFloorCreate");
+ host.querySelector("#superAddFloor").onclick=()=>{box.hidden=false;};
+ host.querySelector("#superCancelFloor").onclick=()=>{box.hidden=true;};
+ host.querySelector("#superCopyMode").onchange=e=>{host.querySelector("#superSourceGroup").hidden=e.target.value==="blank";};
+ host.querySelector("#superCreateFloor").onclick=()=>{
+  const mode=host.querySelector("#superCopyMode").value;
+  if(addSuperFloor(host.querySelector("#superFloorName").value,mode,host.querySelector("#superCopySource").value)){
+   renderSuperstructureSelector();renderActivities();
+  }
+ };
+ host.querySelectorAll("[data-floor-open]").forEach(button=>button.onclick=()=>{
+  setSuperActive(button.dataset.floorOpen);renderSuperstructureSelector();
+ });
+}
+function superSelect(label,value,options,attr){
+ return '<label>'+safe(label)+'<select '+attr+'>'+options.map(v=>option(v,value)).join("")+'</select></label>';
+}
+function superInput(label,value,attr,type){
+ return '<label>'+safe(label)+'<input type="'+(type||"text")+'" '+attr+' value="'+safe(value??"")+'" '+(type==="number"?'min="0" step="any"':"")+'></label>';
+}
+function superWallQuantity(w){
+ const segments=Array.isArray(w.segments)?w.segments:[];
+ if(!segments.length)return {error:"Add a wall measurement segment."};
+ let gross=0,openings=0;
+ for(const seg of segments){
+  const L=Number(seg.length),H=Number(seg.height),O=Number(seg.openings||0);
+  if(![L,H,O].every(Number.isFinite)||L<=0||H<=0||O<0||O>L*H)
+    return {error:"Complete each wall segment with valid length, height and opening area."};
+  gross+=L*H;openings+=O;
+ }
+ const net=gross-openings; if(net<0)return {error:"Opening area cannot exceed wall area."};
+ const result={gross,openings,net,unit:"m²",quantity:net,materials:[],method:"Net wall coverage."};
+ const type=w.type;
+ if(type.includes("blockwork")||type==="Brick masonry"){
+  const L=Number(w.blockLength),H=Number(w.blockHeight),T=Number(w.blockThickness),J=Number(w.joint);
+  if(![L,H,T,J].every(Number.isFinite)||L<=0||H<=0||T<=0||J<0)
+   return {...result,error:"Select valid block dimensions and mortar joint thickness."};
+  const module=((L+J)/1000)*((H+J)/1000);
+  const blocks=Math.ceil(net/module);
+  result.quantity=blocks;result.unit="blocks";result.method="ceil(net area ÷ ((block length + joint) × (block height + joint)))";
+  result.materials.push({name:w.type+" — "+w.blockSize,quantity:blocks,unit:"blocks"});
+  if(w.supply==="In-house block production"){
+   const perBatch=Number(w.blocksPerBatch),cement=Number(w.cementPerBatch),sand=Number(w.sandPerBatch);
+   if([perBatch,cement,sand].every(v=>Number.isFinite(v)&&v>0)){
+    const batches=Math.ceil(blocks/perBatch);
+    result.materials=[{name:"Cement for block production",quantity:batches*cement,unit:"bags"},
+      {name:"Sand for block production",quantity:batches*sand,unit:"m³"}];
+    result.method+="; batches = ceil(blocks ÷ verified batch yield).";
+   }else{
+    result.materials=[];
+    result.warning="Block production quantities require verified yield per batch, cement bags and sand m³ per batch.";
+   }
+  }else{
+   result.warning="Laying mortar is a separate requirement. Mix and yield cannot be inferred from the block count alone.";
+  }
+ }else if(type==="Drywall partition"){
+  const a=Number(w.boardLength)*Number(w.boardWidth);
+  if(!(a>0)&&net>0)return {...result,error:"Enter selected drywall board length and width in metres."};
+  const faces=Number(w.faces),layers=Number(w.layers);
+  if(!(faces>0&&layers>0))return {...result,error:"Specify number of board faces and layers."};
+  result.quantity=net===0?0:Math.ceil(net*faces*layers/a);result.unit="boards";
+  result.materials=[{name:"Drywall boards",quantity:result.quantity,unit:"boards"}];
+  result.warning="Framing, fixings, joints and cutting losses require separate specifications.";
+ }else if(type==="Precast wall panels"){
+  const a=Number(w.panelLength)*Number(w.panelWidth);
+  if(!(a>0)&&net>0)return {...result,error:"Enter precast panel length and height in metres."};
+  result.quantity=net===0?0:Math.ceil(net/a);result.unit="panels";
+  result.materials=[{name:"Precast wall panels",quantity:result.quantity,unit:"panels"}];
+  result.warning="Panel layout, joints, lifting and anchorage require engineering review.";
+ }else if(type==="Cast-in-situ concrete wall"){
+  const thick=Number(w.wallThickness);
+  if(!Number.isFinite(thick)||thick<=0)return {...result,error:"Enter cast-in-situ wall thickness in millimetres."};
+  result.quantity=net*thick/1000;result.unit="m³";
+  result.materials=[{name:"Cast-in-situ concrete wall",quantity:result.quantity,unit:"m³"}];
+  result.warning="Reinforcement and formwork are independent resources; concrete specification remains subject to design.";
+ }
+ return result;
+}
+function syncSuperstructureResources(){
+ if(!isSuperstructure())return;
+ const source="okike-superstructure-measured",old=activityData.materials||[];
+ const prices=new Map(old.filter(r=>r.source===source).map(r=>[r.materialKey,r]));
+ const manual=old.filter(r=>r.source!==source),generated=[];
+ const floors=activityData.details.superstructure||{};
+ if(currentActivity==="Walls"){
+  for(const floor of getSuperConfig().floors){
+   const data=floors[floor.id];if(!data)continue;
+   for(const wall of data.walls||[]){
+    const result=superWallQuantity(wall);if(result.error)continue;
+    for(const [i,item] of result.materials.entries()){
+     const key=floor.id+":"+wall.id+":"+i,oldItem=prices.get(key);
+     generated.push({name:floor.label+" — "+item.name,quantity:String(item.quantity),unit:item.unit,
+      arrangement:"Purchased",rate:oldItem?.unit===item.unit&&oldItem?.name===floor.label+" — "+item.name?oldItem.rate||"":"",
+      source,materialKey:key});
+    }
+   }
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function renderSuperstructureDetails(){
+ const config=getSuperConfig(),current=config.active,rec=superFloorDetails(current);
+ const tabs=config.floors.map(f=>'<button type="button" class="secondary-button '+(f.id===current?"super-active":"")+'" data-wizard-floor="'+safe(f.id)+'">'+safe(f.label)+'</button>').join("");
+ const header='<div class="step-intro"><h3>'+safe(currentActivity)+' — '+safe(config.floors.find(f=>f.id===current)?.label||"Floor")+'</h3>'+
+ '<p>Floor-specific Work Details. Each floor is independently measured. No quantities are copied without review.</p></div>'+
+ '<div class="super-floor-chips">'+tabs+'<button type="button" class="secondary-button" id="superWizardAdd">+ Add Floor</button></div>'+
+ '<div id="superWizardCreate" class="super-new-floor" hidden></div>';
+ if(currentActivity==="Walls"){
+   stepContent.innerHTML=header+'<div class="super-wall-controls"><h3>Wall systems</h3><p class="sub-notice">Add one or more wall types. Measurements are recorded by grid reference or overall segments, with openings deducted explicitly.</p><button type="button" class="secondary-button" id="superAddWall">+ Add wall type</button></div><div id="superWalls"></div>';
+   renderSuperWalls();
+   stepContent.querySelector("#superAddWall").onclick=()=>{rec.walls ||= [];rec.walls.push(newWall());superDraftChanged();renderSuperWalls();};
+ }else{
+   const type=currentActivity;
+   const mode=type==="Reinforced concrete columns"?"columns":type==="Reinforced concrete beams"?"beams":"other";
+   const labels=mode==="columns"?["Column width (m)","Column depth (m)","Column height (m)","Number of columns"]:
+     mode==="beams"?["Beam width (m)","Beam depth (m)","Beam span (m)","Number of beams"]:
+     ["Total measured length (m)","Measured width (m, if applicable)","Measured height (m, if applicable)","Repeats"];
+   rec.generic ||= {length:"",width:"",height:"",count:"1",spec:""};
+   const g=rec.generic;
+   stepContent.innerHTML=header+'<div class="field-grid">'+
+      superInput("Drawing / revision reference",rec.drawing,'data-super-general="drawing"')+
+      superInput("Work specification / drawing requirement",g.spec,'data-super-measure="spec"')+
+      superInput(labels[0],g.length,'data-super-measure="length"',"number")+
+      superInput(labels[1],g.width,'data-super-measure="width"',"number")+
+      superInput(labels[2],g.height,'data-super-measure="height"',"number")+
+      superInput(labels[3],g.count,'data-super-measure="count"',"number")+'</div>'+
+      '<div class="field-group"><label>Scope / notes<textarea data-super-general="notes">'+safe(rec.notes||"")+'</textarea></label></div>'+
+      '<div class="measurement-panel"><h3>Calculated work quantity</h3><strong id="superGenericOutput">—</strong><p class="sub-notice">'+
+      (mode==="other"?"Measured quantities and details are indicative. Specialist resource formulas will be specified after review.":"Gross geometric concrete volume only; reinforcement and formwork must be independently detailed.")+
+      '</p></div>';
+   stepContent.querySelectorAll("[data-super-measure]").forEach(e=>e.addEventListener("input",()=>{g[e.dataset.superMeasure]=e.value;superDraftChanged();updateSuperGeneric();}));
+   stepContent.querySelectorAll("[data-super-general]").forEach(e=>e.addEventListener("input",()=>{rec[e.dataset.superGeneral]=e.value;superDraftChanged();}));
+   updateSuperGeneric();
+ }
+ stepContent.querySelectorAll("[data-wizard-floor]").forEach(b=>b.onclick=()=>{saveProjectData();setSuperActive(b.dataset.wizardFloor);renderSuperstructureDetails();});
+ stepContent.querySelector("#superWizardAdd").onclick=()=>showSuperWizardFloorDialog();
+}
+function updateSuperGeneric(){
+ const out=document.getElementById("superGenericOutput");if(!out)return;
+ const g=superFloorDetails(getSuperConfig().active).generic||{},l=Number(g.length),w=Number(g.width),h=Number(g.height),n=Number(g.count);
+ const isConcrete=["Reinforced concrete columns","Reinforced concrete beams"].includes(currentActivity);
+ const valid=[l,w,h,n].every(x=>Number.isFinite(x)&&x>0);
+ out.textContent=isConcrete?(valid?formatMeasure(l*w*h*n)+" m³":"— (complete section, height/span and repeats)"):
+  (Number.isFinite(l)&&l>0?formatMeasure(l)+" m measured; confirm specialist quantities":"— (enter applicable measurements)");
+}
+function showSuperWizardFloorDialog(){
+ const host=stepContent.querySelector("#superWizardCreate"),cfg=getSuperConfig();host.hidden=false;
+ host.innerHTML='<h3>Add Superstructure Floor</h3>'+
+ superInput("New floor name","",'id="superWizardFloorName"')+
+ superSelect("Creation method","blank",["blank","specs","full"],'id="superWizardMode"')+
+ superSelect("Copy from","",cfg.floors.map(f=>f.id),'id="superWizardSource"')+
+ '<div class="super-floor-actions"><button type="button" class="primary-button" id="superWizardCreateButton">Create floor</button><button type="button" class="secondary-button" id="superWizardCancel">Cancel</button></div>'+
+ '<p class="sub-notice">blank = empty; specs = copy material specifications without dimensions; full = duplicate as editable draft.</p>';
+ host.querySelector("#superWizardCancel").onclick=()=>host.hidden=true;
+ host.querySelector("#superWizardCreateButton").onclick=()=>{
+  const id=host.querySelector("#superWizardSource").value||cfg.active;
+  if(addSuperFloor(host.querySelector("#superWizardFloorName").value,host.querySelector("#superWizardMode").value,id)){
+    renderSuperstructureDetails();
+  }
+ };
+}
+function renderSuperWalls(){
+ const container=stepContent.querySelector("#superWalls");if(!container)return;
+ const rec=superFloorDetails(getSuperConfig().active),walls=rec.walls||[];
+ container.innerHTML=walls.length?walls.map((w,i)=>{
+  const result=superWallQuantity(w),blockLike=w.type.includes("blockwork")||w.type==="Brick masonry";
+  const standard=SUPER_BLOCK_SIZES.find(x=>x[0]===w.blockSize);
+  let specific="";
+  if(blockLike){
+   specific='<div class="super-wall-grid">'+
+      superSelect("Block / brick dimensions",w.blockSize,SUPER_BLOCK_SIZES.map(x=>x[0]),'data-super-wall="'+i+'" data-key="blockSize"')+
+      superInput("Block length (mm)",w.blockLength,'data-super-wall="'+i+'" data-key="blockLength"',"number")+
+      superInput("Block face height (mm)",w.blockHeight,'data-super-wall="'+i+'" data-key="blockHeight"',"number")+
+      superInput("Block thickness (mm)",w.blockThickness,'data-super-wall="'+i+'" data-key="blockThickness"',"number")+
+      superInput("Mortar joint thickness (mm)",w.joint,'data-super-wall="'+i+'" data-key="joint"',"number")+
+      superSelect("Block supply",w.supply,["Purchased blocks","In-house block production"],'data-super-wall="'+i+'" data-key="supply"')+'</div>';
+   if(w.supply==="In-house block production")specific+='<div class="super-wall-grid">'+
+    superInput("Verified blocks produced per batch",w.blocksPerBatch,'data-super-wall="'+i+'" data-key="blocksPerBatch"',"number")+
+    superInput("Cement bags per production batch",w.cementPerBatch,'data-super-wall="'+i+'" data-key="cementPerBatch"',"number")+
+    superInput("Sand (m³) per production batch",w.sandPerBatch,'data-super-wall="'+i+'" data-key="sandPerBatch"',"number")+'</div>'+
+    '<p class="sub-notice">Production yield and mix must be validated from OKIKE records. Laying mortar is separate from block manufacture.</p>';
+  }else if(w.type==="Drywall partition")specific='<div class="super-wall-grid">'+
+   superInput("Board length (m)",w.boardLength,'data-super-wall="'+i+'" data-key="boardLength"',"number")+
+   superInput("Board width (m)",w.boardWidth,'data-super-wall="'+i+'" data-key="boardWidth"',"number")+
+   superInput("Faces",w.faces,'data-super-wall="'+i+'" data-key="faces"',"number")+
+   superInput("Layers per face",w.layers,'data-super-wall="'+i+'" data-key="layers"',"number")+'</div>';
+  else if(w.type==="Precast wall panels")specific='<div class="super-wall-grid">'+
+   superInput("Panel width (m)",w.panelLength,'data-super-wall="'+i+'" data-key="panelLength"',"number")+
+   superInput("Panel height (m)",w.panelWidth,'data-super-wall="'+i+'" data-key="panelWidth"',"number")+'</div>';
+  else if(w.type==="Cast-in-situ concrete wall")specific='<div class="super-wall-grid">'+
+   superInput("Concrete thickness (mm)",w.wallThickness,'data-super-wall="'+i+'" data-key="wallThickness"',"number")+'</div>';
+  const rows=(w.segments||[]).map((r,j)=>'<div class="super-segment"><strong>Segment '+(j+1)+'</strong><div class="super-wall-grid">'+
+    superInput("Grid reference / location",r.ref,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="ref"')+
+    superInput("Wall length (m)",r.length,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="length"',"number")+
+    superInput("Wall height (m)",r.height,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="height"',"number")+
+    superInput("Opening area (m²)",r.openings,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="openings"',"number")+
+    '</div><button type="button" class="secondary-button" data-remove-segment="'+i+'" data-segment-number="'+j+'">Remove segment</button></div>').join("");
+  return '<section class="super-wall-card"><div class="super-wall-heading"><h3>Wall type '+(i+1)+'</h3><button type="button" class="secondary-button" data-remove-wall="'+i+'">Remove wall type</button></div>'+
+    '<div class="super-wall-grid">'+
+    superSelect("Wall type",w.type,SUPER_WALL_TYPES,'data-super-wall="'+i+'" data-key="type"')+
+    superSelect("Wall position",w.position,["Interior","Exterior"],'data-super-wall="'+i+'" data-key="position"')+
+    superSelect("Measurement method",w.lengthMethod,["segments","total"],'data-super-wall="'+i+'" data-key="lengthMethod"')+
+    '</div>'+specific+
+    '<div class="super-segment-heading"><h4>'+ (w.lengthMethod==="total"?"Overall wall dimensions":"Segments / grid-line measurements") +'</h4><button type="button" class="secondary-button" data-add-segment="'+i+'">+ Add segment</button></div>'+
+    rows+
+    '<div class="super-wall-result"><strong>Measured wall: '+(result.error?"Incomplete":formatMeasure(result.net)+" m² net")+'</strong>'+
+    '<p>Calculated material: '+(result.error?"—":formatMeasure(result.quantity)+" "+safe(result.unit))+'</p>'+
+    '<p class="sub-notice">'+safe(result.error||result.warning||result.method)+'</p></div>'+
+    superInput("Specification / notes",w.notes,'data-super-wall="'+i+'" data-key="notes"')+'</section>';
+ }).join(""):'<p class="sub-notice">No wall types added on this floor. Select + Add wall type.</p>';
+ container.querySelectorAll("[data-super-wall]").forEach(el=>{
+  const handler=()=>{const w=walls[Number(el.dataset.superWall)],key=el.dataset.key;w[key]=el.value;
+   if(key==="blockSize"){const b=SUPER_BLOCK_SIZES.find(x=>x[0]===el.value);if(b&&b[1]){w.blockLength=String(b[1]);w.blockHeight=String(b[2]);w.blockThickness=String(b[3]);}}
+   superDraftChanged();if(["type","blockSize","supply","lengthMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
+  };
+  el.addEventListener(el.tagName==="SELECT"?"change":"input",handler);
+ });
+ container.querySelectorAll("[data-super-segment]").forEach(el=>el.addEventListener("input",()=>{
+  walls[Number(el.dataset.superSegment)].segments[Number(el.dataset.segmentIndex)][el.dataset.segmentKey]=el.value;
+  superDraftChanged();refreshSuperWallResults();
+ }));
+ container.querySelectorAll("[data-add-segment]").forEach(btn=>btn.onclick=()=>{
+  walls[Number(btn.dataset.addSegment)].segments.push({ref:"",length:"",height:"",openings:"0"});
+  superDraftChanged();renderSuperWalls();
+ });
+ container.querySelectorAll("[data-remove-segment]").forEach(btn=>btn.onclick=()=>{
+  walls[Number(btn.dataset.removeSegment)].segments.splice(Number(btn.dataset.segmentNumber),1);
+  superDraftChanged();renderSuperWalls();
+ });
+ container.querySelectorAll("[data-remove-wall]").forEach(btn=>btn.onclick=()=>{
+  walls.splice(Number(btn.dataset.removeWall),1);superDraftChanged();renderSuperWalls();
+ });
+}
+function refreshSuperWallResults(){
+ // Avoid recreating active input elements on each keystroke.
+ const walls=superFloorDetails(getSuperConfig().active).walls||[];
+ stepContent.querySelectorAll(".super-wall-card").forEach((card,i)=>{
+  const result=superWallQuantity(walls[i]),out=card.querySelector(".super-wall-result");
+  if(out)out.innerHTML='<strong>Measured wall: '+(result.error?"Incomplete":formatMeasure(result.net)+" m² net")+'</strong>'+
+    '<p>Calculated material: '+(result.error?"—":formatMeasure(result.quantity)+" "+safe(result.unit))+'</p>'+
+    '<p class="sub-notice">'+safe(result.error||result.warning||result.method)+'</p>';
+ });
+}
+function superDraftChanged(){
+ activityData.confirmed=false;saveProjectData();syncSuperstructureResources();saveProjectData();
+}
+function validateSuperstructure(){
+ const data=activityData.details.superstructure||{},cfg=getSuperConfig();
+ if(currentActivity==="Walls"){
+  for(const f of cfg.floors)for(const w of data[f.id]?.walls||[]){
+   const r=superWallQuantity(w);
+   if(r.error){showToast(f.label+": "+r.error);return false;}
+  }
+ }
+ return true;
+}
+function superstructureReview(){
+ const data=activityData.details.superstructure||{},cfg=getSuperConfig();
+ const lines=cfg.floors.map(f=>{
+  const rec=data[f.id];
+  if(!rec)return '<p>'+safe(f.label)+': No details entered.</p>';
+  if(currentActivity==="Walls")return '<h4>'+safe(f.label)+'</h4>'+
+    (rec.walls||[]).map(w=>{const r=superWallQuantity(w);
+      return '<p>'+safe(w.type)+' ('+safe(w.position)+'): '+(r.error?safe(r.error):formatMeasure(r.net)+" m² net; "+formatMeasure(r.quantity)+" "+safe(r.unit))+'</p>';
+    }).join("");
+  return '<p>'+safe(f.label)+': '+safe(rec.generic?.spec||rec.notes||"Draft")+'</p>';
+ }).join("");
+ return '<div class="review-section"><h3>Superstructure Work Details (all floors)</h3>'+lines+
+   '<p class="sub-notice">Preliminary measurements are subject to drawing review; quantities exclude unapproved allowances.</p></div>';
+}
+
 renderStages();
 showView(stageView);
