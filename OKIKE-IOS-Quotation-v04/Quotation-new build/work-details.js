@@ -3082,27 +3082,7 @@ function renderSuperstructureDetails(){
    renderSuperWalls();
    stepContent.querySelector("#superAddWall").onclick=()=>{rec.walls ||= [];rec.walls.push(newWall());superDraftChanged();renderSuperWalls();};
  }else{
-   const type=currentActivity;
-   const mode=type==="Reinforced concrete columns"?"columns":type==="Reinforced concrete beams"?"beams":"other";
-   const labels=mode==="columns"?["Column width (m)","Column depth (m)","Column height (m)","Number of columns"]:
-     mode==="beams"?["Beam width (m)","Beam depth (m)","Beam span (m)","Number of beams"]:
-     ["Total measured length (m)","Measured width (m, if applicable)","Measured height (m, if applicable)","Repeats"];
-   rec.generic ||= {length:"",width:"",height:"",count:"1",spec:""};
-   const g=rec.generic;
-   stepContent.innerHTML=header+'<div class="field-grid">'+
-      superInput("Drawing / revision reference",rec.drawing,'data-super-general="drawing"')+
-      superInput("Work specification / drawing requirement",g.spec,'data-super-measure="spec"')+
-      superInput(labels[0],g.length,'data-super-measure="length"',"number")+
-      superInput(labels[1],g.width,'data-super-measure="width"',"number")+
-      superInput(labels[2],g.height,'data-super-measure="height"',"number")+
-      superInput(labels[3],g.count,'data-super-measure="count"',"number")+'</div>'+
-      '<div class="field-group"><label>Scope / notes<textarea data-super-general="notes">'+safe(rec.notes||"")+'</textarea></label></div>'+
-      '<div class="measurement-panel"><h3>Calculated work quantity</h3><strong id="superGenericOutput">—</strong><p class="sub-notice">'+
-      (mode==="other"?"Measured quantities and details are indicative. Specialist resource formulas will be specified after review.":"Gross geometric concrete volume only; reinforcement and formwork must be independently detailed.")+
-      '</p></div>';
-   stepContent.querySelectorAll("[data-super-measure]").forEach(e=>e.addEventListener("input",()=>{g[e.dataset.superMeasure]=e.value;superDraftChanged();updateSuperGeneric();}));
-   stepContent.querySelectorAll("[data-super-general]").forEach(e=>e.addEventListener("input",()=>{rec[e.dataset.superGeneral]=e.value;superDraftChanged();}));
-   updateSuperGeneric();
+    renderSuperstructureActivityDetails(header,rec);
  }
  stepContent.querySelectorAll("[data-wizard-floor]").forEach(b=>b.onclick=()=>{saveProjectData();setSuperActive(b.dataset.wizardFloor);renderSuperstructureDetails();});
  stepContent.querySelector("#superWizardAdd").onclick=()=>showSuperWizardFloorDialog();
@@ -3222,6 +3202,14 @@ function superDraftChanged(){
 }
 function validateSuperstructure(){
  const data=activityData.details.superstructure||{},cfg=getSuperConfig();
+ if(currentActivity!=="Walls"){
+  const def=SUPER_ACTIVITY_FIELDS[currentActivity];
+  if(def)for(const f of cfg.floors)for(const row of data[f.id]?.items||[]){
+   const result=superActivityQuantity(currentActivity,row);
+   if(result.error){showToast(f.label+": "+result.error);return false;}
+  }
+ }
+
  if(currentActivity==="Walls"){
   for(const f of cfg.floors)for(const w of data[f.id]?.walls||[]){
    const r=superWallQuantity(w);
@@ -3239,10 +3227,159 @@ function superstructureReview(){
     (rec.walls||[]).map(w=>{const r=superWallQuantity(w);
       return '<p>'+safe(w.type)+' ('+safe(w.position)+'): '+(r.error?safe(r.error):formatMeasure(r.net)+" m² net; "+formatMeasure(r.quantity)+" "+safe(r.unit))+'</p>';
     }).join("");
-  return '<p>'+safe(f.label)+': '+safe(rec.generic?.spec||rec.notes||"Draft")+'</p>';
+  const total=superActivityTotal(currentActivity,rec.items||[]);
+  const spec=Object.values(rec.specs||{}).filter(Boolean).map(safe).join(" · ");
+  return '<p><strong>'+safe(f.label)+'</strong>: '+(total?formatMeasure(total.quantity)+" "+safe(total.unit):"Measurements incomplete")+
+   (spec?" — "+spec:"")+'</p>';
  }).join("");
  return '<div class="review-section"><h3>Superstructure Work Details (all floors)</h3>'+lines+
    '<p class="sub-notice">Preliminary measurements are subject to drawing review; quantities exclude unapproved allowances.</p></div>';
+}
+
+
+/* OK-SS-002 — Activity-specific Work Details. All rows carry a drawing reference,
+ * selected floor, dimensions and construction specification. Quantities describe
+ * measured work only, not an automatically generated structural design. */
+const SUPER_ACTIVITY_FIELDS={
+ "Structural layout and setting out":{
+  intro:"Set out vertical structural grids, wall lines and control points; record the drawing revision, datum and grid references.",
+  columns:[["ref","Grid line / location","text"],["length","Setting-out length (m)","number"],["count","Repeated runs","number"]],
+  specs:[["drawing","Architectural / structural drawing reference","text"],["datum","Survey datum / benchmark","text"],["method","Setting-out method","select",["Total station","Theodolite","Laser level / tape","Manual / other"]],["verification","Control-point verification notes","text"]],
+  calc:"length",unit:"m",note:"Measured set-out line length only; control points, equipment and survey labour are separately costed."
+ },
+ "Reinforced concrete columns":{
+  intro:"Group columns by structural grid, cross-section, storey height and concrete specification.",
+  columns:[["ref","Column mark / grid","text"],["width","Column width (mm)","number"],["depth","Column depth (mm)","number"],["height","Column height (m)","number"],["count","No. of columns","number"]],
+  specs:[["drawing","Structural drawing / revision","text"],["section","Column section","select",["Square / rectangular","Circular — measure separately","Other engineered section"]],["grade","Concrete specification / grade","text"],["reinforcement","Reinforcement schedule / bar mark reference","text"],["formwork","Formwork type / finish","select",["Timber / plywood","Steel panel","Proprietary modular","Other"]],["method","Concrete placement method","select",["Site-mixed","Ready-mix","Specified other"]]],
+  calc:"volume",unit:"m³",note:"Gross rectangular column volume = width (m) × depth (m) × height (m) × quantity. Circular and engineered shapes need approved geometry; reinforcement and formwork require independent schedules."
+ },
+ "Reinforced concrete beams":{
+  intro:"Measure beams by span, section and level. Distinguish them from ground beams or upper-floor beams already measured elsewhere.",
+  columns:[["ref","Beam mark / grid","text"],["width","Beam width (mm)","number"],["depth","Beam overall depth (mm)","number"],["length","Beam length (m)","number"],["count","No. of beams","number"]],
+  specs:[["drawing","Structural drawing / revision","text"],["kind","Beam type","select",["In-situ reinforced concrete","Precast reinforced concrete","Other engineered beam"]],["grade","Concrete specification / grade","text"],["reinforcement","Beam bar bending schedule reference","text"],["formwork","Soffit and side formwork specification","text"],["overlap","Beam/column/slab intersection measurement note","text"]],
+  calc:"volume",unit:"m³",note:"Gross beam volume = width (m) × depth (m) × length (m) × number. Deductions at beam-column/slab intersections require the measurement convention to be documented."
+ },
+ "Door and window opening formation":{
+  intro:"Record all openings and their lintel requirements within one activity. Wall area deductions remain in Walls; do not deduct openings twice.",
+  columns:[["ref","Opening mark / location","text"],["width","Opening width (m)","number"],["height","Opening height (m)","number"],["count","Number of openings","number"],["lintelLength","Lintel overall length (m, if required)","number"]],
+  specs:[["drawing","Openings / elevations drawing reference","text"],["openingType","Opening type","select",["Door","Window","Vent / service opening","Mixed / specify per row"]],["lintel","Lintel requirement","select",["Not required / engineer to confirm","Precast concrete lintel","In-situ reinforced concrete lintel","Steel lintel","Other"]],["lintelSection","Lintel section / reinforcement / bearing notes","text"],["finish","Reveal / jamb / sill formation notes","text"]],
+  calc:"openings",unit:"openings",note:"Counts openings and optional total specified lintel run. Lintel concrete, steel, bearing and reinforcement are not inferred from opening width."
+ },
+ "Reinforced concrete stiffeners and wall ties":{
+  intro:"Capture stiffener elements and wall ties in separately traceable schedules; do not duplicate measured columns.",
+  columns:[["ref","Stiffener or tie reference","text"],["width","Stiffener width (mm)","number"],["depth","Stiffener depth (mm)","number"],["height","Vertical height / length (m)","number"],["count","Quantity","number"]],
+  specs:[["drawing","Structural / wall restraint detail","text"],["element","Element type","select",["Concrete wall stiffener","Wall tie / anchor","Movement-joint restraint","Other"]],["grade","Concrete / metal material specification","text"],["reinforcement","Rebar / anchorage specification","text"]],
+  calc:"volume",unit:"m³",note:"Rectangular stiffeners produce gross geometric volume; wall ties and other units require a product-specific quantity schedule."
+ },
+ "Wall reinforcement and anchoring":{
+  intro:"Specify reinforcement accessories, anchorage and spacing; measured quantities come from structural details or product installation schedules.",
+  columns:[["ref","Wall reference / grid","text"],["length","Reinforced wall run (m)","number"],["count","Number of equivalent runs","number"]],
+  specs:[["drawing","Structural masonry / wall detail","text"],["system","Reinforcement system","select",["Bed-joint reinforcement","Vertical reinforcing bars","Cavity / wall ties","Post-installed anchors","Other specified system"]],["spacing","Course spacing / anchorage centres (mm)","number"],["material","Product / bar / fixings specification","text"],["connection","Overlap / termination / connection details","text"]],
+  calc:"length",unit:"m",note:"Net wall-run length is a measurement reference. Product quantities need confirmed course spacing, tie spacing, anchorage lengths and manufacturer/engineer details."
+ },
+ "Concrete and masonry curing":{
+  intro:"Record curing zones, material type, duration and exposure requirements separately for each floor.",
+  columns:[["ref","Curing zone / element","text"],["length","Exposed surface length (m)","number"],["width","Exposed surface width (m)","number"],["count","Surfaces / repeats","number"]],
+  specs:[["drawing","Drawing / curing-zone reference","text"],["method","Specified curing system","select",["Water curing","Wet hessian / coverings","Membrane curing compound","Protective sheeting","Other"]],["period","Specified curing period (days)","number"],["material","Curing product / coverage specification","text"],["conditions","Weather and protection requirements","text"]],
+  calc:"area",unit:"m²",note:"Measured exposed curing area only. No assumed water volume, compound spread rate or sheet laps."
+ },
+ "Superstructure inspection and quality testing":{
+  intro:"Document inspection and testing obligations per floor without inventing laboratory or certification quantities.",
+  columns:[["ref","Inspection / test reference","text"],["count","Number of inspections / tests","number"]],
+  specs:[["drawing","Drawing / inspection plan","text"],["test","Inspection / test type","select",["Concrete tests","Masonry tests","Alignment / dimensional checks","Reinforcement inspection","Formwork inspection","Other"]],["standard","Applicable standard / acceptance criteria","text"],["responsible","Responsible inspector / laboratory","text"],["evidence","Reports / evidence and hold points","text"]],
+  calc:"count",unit:"tests",note:"Schedule count only. Lab tests, samples and rates must follow the approved quality plan."
+ }
+};
+function newSuperWorkRow(){
+ return {ref:"",length:"",width:"",depth:"",height:"",count:"1",lintelLength:""};
+}
+function superActivityQuantity(name,row){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return {error:"Activity not configured"};
+ const keys=def.columns.filter(x=>x[2]==="number"&&x[0]!=="lintelLength").map(x=>x[0]);
+ if(keys.some(k=>String(row[k]??"").trim()===""))return {error:"Complete required measurement dimensions."};
+ if(keys.some(k=>!Number.isFinite(Number(row[k]))||Number(row[k])<=0))return {error:"Measurement dimensions must be positive numbers."};
+ const v=k=>Number(row[k]);
+ let quantity=0,secondary=null;
+ if(def.calc==="volume"){
+  quantity=(v("width")/1000)*(v("depth")/1000)*(v("height")||v("length"))*v("count");
+ }else if(def.calc==="length"){
+  quantity=v("length")*v("count");
+ }else if(def.calc==="area"){
+  quantity=v("length")*v("width")*v("count");
+ }else if(def.calc==="openings"){
+  quantity=v("count");
+  const lintel=String(row.lintelLength??"").trim();
+  if(lintel){
+   if(!Number.isFinite(Number(lintel))||Number(lintel)<0)return {error:"Lintel length must be non-negative."};
+   secondary=Number(lintel)*v("count");
+  }
+ }else quantity=v("count");
+ return {quantity,unit:def.unit,secondary};
+}
+function superActivityTotal(name,rows){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return null;
+ const entries=rows.map(r=>superActivityQuantity(name,r));
+ if(!entries.length||entries.some(e=>e.error))return null;
+ return {quantity:entries.reduce((t,e)=>t+e.quantity,0),unit:def.unit,
+  secondary:entries.reduce((t,e)=>t+(e.secondary||0),0)};
+}
+function renderSuperstructureActivityDetails(header,rec){
+ const def=SUPER_ACTIVITY_FIELDS[currentActivity];
+ if(!def){stepContent.innerHTML=header+'<p class="sub-notice">Detailed requirements are being configured for this activity.</p>';return;}
+ rec.specs ||= {};rec.items ||= [];
+ stepContent.innerHTML=header+
+  '<section class="super-detail-card"><div class="super-detail-head"><div><h3>Construction specifications</h3><p>'+safe(def.intro)+'</p></div></div>'+
+  '<div class="super-detail-grid">'+def.specs.map(([key,label,type,opts])=>{
+   const attr='data-super-spec="'+safe(key)+'"';
+   return type==="select"?superSelect(label,rec.specs[key]||"",["",...opts],attr):
+     superInput(label,rec.specs[key]||"",attr,type==="number"?"number":"text");
+  }).join("")+'</div></section>'+
+  '<section class="super-detail-card"><div class="super-detail-head"><div><h3>Measurement groups</h3><p>Record separate grid references, sizes or locations. Each group has its own calculated quantity.</p></div>'+
+  '<button type="button" class="secondary-button" id="superAddWorkRow">+ Add measurement row</button></div>'+
+  '<div id="superWorkRows"></div><div class="super-total-line"><span>Total measured quantity</span><strong id="superDetailedTotal">—</strong></div>'+
+  '<p class="sub-notice">'+safe(def.note)+'</p></section>';
+ stepContent.querySelectorAll("[data-super-spec]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+  rec.specs[el.dataset.superSpec]=el.value;superDraftChanged();renderSuperWorkTotal();
+ }));
+ stepContent.querySelector("#superAddWorkRow").onclick=()=>{
+  rec.items.push(newSuperWorkRow());superDraftChanged();renderSuperWorkRows();
+ };
+ renderSuperWorkRows();
+}
+function renderSuperWorkRows(){
+ const def=SUPER_ACTIVITY_FIELDS[currentActivity],rec=superFloorDetails(getSuperConfig().active),host=stepContent.querySelector("#superWorkRows");
+ if(!def||!host)return;
+ rec.items ||= [];
+ host.innerHTML=rec.items.length?rec.items.map((row,index)=>{
+  const res=superActivityQuantity(currentActivity,row);
+  return '<div class="super-measurement"><div class="super-row-head"><strong>Measurement '+(index+1)+'</strong>'+
+   '<button type="button" class="secondary-button" data-super-delete-row="'+index+'">Remove</button></div>'+
+   '<div class="super-detail-grid">'+def.columns.map(([key,label,type])=>
+    superInput(label,row[key]??"", 'data-super-row="'+index+'" data-super-key="'+safe(key)+'"',type)
+   ).join("")+'</div><div class="super-row-quantity" data-super-row-output="'+index+'">'+
+   (res.error?safe(res.error):formatMeasure(res.quantity)+" "+safe(res.unit)+
+    (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":""))+'</div></div>';
+ }).join(""):'<p class="sub-notice">No measurement rows added yet. Add a row for each grid line, element type or distinct dimension.</p>';
+ host.querySelectorAll("[data-super-row]").forEach(el=>el.addEventListener("input",()=>{
+  rec.items[Number(el.dataset.superRow)][el.dataset.superKey]=el.value;
+  superDraftChanged();renderSuperWorkTotal();
+ }));
+ host.querySelectorAll("[data-super-delete-row]").forEach(btn=>btn.onclick=()=>{
+  rec.items.splice(Number(btn.dataset.superDeleteRow),1);superDraftChanged();renderSuperWorkRows();
+ });
+ renderSuperWorkTotal();
+}
+function renderSuperWorkTotal(){
+ const rec=superFloorDetails(getSuperConfig().active),rows=rec.items||[],total=superActivityTotal(currentActivity,rows);
+ rows.forEach((row,i)=>{
+  const el=stepContent.querySelector('[data-super-row-output="'+i+'"]');if(!el)return;
+  const res=superActivityQuantity(currentActivity,row);
+  el.textContent=res.error?res.error:formatMeasure(res.quantity)+" "+res.unit+
+   (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"");
+ });
+ const out=stepContent.querySelector("#superDetailedTotal");
+ if(out)out.textContent=total?formatMeasure(total.quantity)+" "+total.unit+
+  (total.secondary?" · Specified lintel runs: "+formatMeasure(total.secondary)+" m":""):"—";
 }
 
 renderStages();
