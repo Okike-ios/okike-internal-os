@@ -189,7 +189,7 @@ function renderFloorSelector(){
 }
 
 function isSubstructure(){return currentStage==="Substructure";}
-function activityCatalog(){return isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
+function activityCatalog(){return isSuperstructure()?superstructureActivities:isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
 function getSubConfig(){const d=getProjectData().workDetails?.substructure||{};return {foundationType:d.foundationType||"Not specified",enabled:d.enabled||null};}
 function saveSubConfig(config){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.substructure={...config,updatedAt:new Date().toISOString()};try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));projectData=d;}catch(e){showToast("Could not save foundation settings.");}}
 // These are suggested activity selections, not design-approved exclusions.
@@ -673,7 +673,7 @@ function renderStages() {
 
   stageList.innerHTML = selectedStages.map((stage, index) => {
 
-    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage) && getCompletedActivityCount(stage) > 0;
+    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage) && getCompletedActivityCount(stage) > 0;
 
     return `
       <div class="stage-row" data-stage="${safe(stage)}" role="button" tabindex="0" aria-label="Open ${safe(stage)}">
@@ -695,7 +695,7 @@ function renderStages() {
 
         <span class="stage-meta">
           ${
-            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)
+            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage)
               ? `${getCompletedActivityCount(stage)} activities completed`
               : "Activities to be defined"
           }
@@ -734,7 +734,7 @@ function openStage(stage) {
   document.getElementById("activityEyebrow").textContent =
     "SELECTED CONSTRUCTION STAGE";
 
-  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)) {
+  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage)) {
 
     activityList.innerHTML = `
       <div class="empty-state">
@@ -763,7 +763,7 @@ function getActivityRecord(name) {
 }
 
 function getCompletedActivityCount(stage = currentStage) {
-  const list = stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
+  const list = stage === "Superstructure" ? superstructureActivities : stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
   return list.filter(name => {
     return getActivityRecord(name)?.confirmed;
   }).length;
@@ -774,10 +774,10 @@ function getCompletedActivityCount(stage = currentStage) {
 // ==========================================
 
 function renderActivities() {
-  const names=isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
+  const names=isSuperstructure()?superstructureActivities:isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
   const completed=getCompletedActivityCount();
   const selector=document.getElementById('foundationSelector');
-  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();}
+  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor()||isSuperstructure());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();else if(isSuperstructure())renderSuperstructureSelector();}
   document.getElementById('activityProgress').textContent=`${completed} / ${names.length}`;
   activityList.innerHTML=names.length?names.map((name,index)=>{
     const record=getActivityRecord(name),confirmed=!!record?.confirmed;
@@ -1398,6 +1398,8 @@ function renderWorkDetails() {
     return;
   }
 
+  if (isSuperstructure()) { renderSuperstructureDetails(); return; }
+
   if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) {
     renderSubstructureDetails();
     return;
@@ -1633,7 +1635,7 @@ function renderResourceRows(containerId, rows, type) {
 // ==========================================
 
 function renderMaterials() {
-  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();
+  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();if(isSuperstructure())syncSuperstructureResources();
   stepContent.innerHTML = `
 
     <div class="step-intro">
@@ -2367,6 +2369,8 @@ function renderReview() {
     `;
   }
 
+  if (isSuperstructure()) detailsReview=superstructureReview();
+
   if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(hasDemoResource())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> Automatically derived material quantities are not commercially approved.</p>'; if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
 
   // Generic review for the 11 stage-specific activity forms.
@@ -2443,6 +2447,7 @@ function validateCurrentStep() {
     if (invalid) missing.push(field);
   });
 
+  if (isSuperstructure() && !validateSuperstructure()) return false;
   if ((isSubstructure() || isGroundFloor()) && currentStep===0) {
     const rows=activityData.details.measurements||[];
     const spec=subMeasurements[currentActivity];
