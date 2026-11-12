@@ -3863,5 +3863,93 @@ function renderSuperOpeningTypes(){
  });
 }
 
+/* Resource transfer v0.3: generated rows are replaced, manual rows retained.
+ * Stable material keys include floor, element and output type. Rates are retained
+ * only when both material name and unit are unchanged.
+ */
+function syncSuperstructureResources(){
+ if(!isSuperstructure())return;
+ const source="okike-superstructure-measured",old=activityData.materials||[];
+ const original=new Map(old.filter(r=>r.source===source).map(r=>[r.materialKey,r]));
+ const manual=old.filter(r=>r.source!==source),generated=[];
+ function add(key,name,quantity,unit){
+  if(!Number.isFinite(quantity)||quantity<0)return;
+  const prev=original.get(key);
+  generated.push({name,quantity:String(Number(quantity.toFixed(6))),unit,
+   arrangement:"Purchased",rate:prev?.name===name&&prev?.unit===unit?prev.rate||"":"",
+   source,materialKey:key,formulaStatus:"PRELIMINARY_GEOMETRIC_TAKEOFF"});
+ }
+ const records=activityData.details.superstructure||{};
+ for(const floor of getSuperConfig().floors){
+  const rec=records[floor.id];if(!rec)continue;
+  if(currentActivity==="Walls"){
+   for(const [i,w]of(rec.walls||[]).entries()){
+    const result=superWallQuantity(w);if(result.error)continue;
+    for(const [j,item]of result.materials.entries())
+     add(floor.id+":wall:"+(w.id||i)+":"+j,floor.label+" — "+item.name,item.quantity,item.unit);
+   }
+  }else if(currentActivity==="Door and window opening formation"){
+   for(const [i,o]of(rec.openingTypes||[]).entries()){
+    const r=ssOpeningTakeoff(o);if(r.error)continue;
+    for(const [j,item]of r.materials.entries())
+     add(floor.id+":opening:"+(o.id||i)+":"+j,floor.label+" — "+(o.reference||o.type)+" — "+item.name,item.quantity,item.unit);
+   }
+  }else if(["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(currentActivity)){
+   for(const [i,row]of(rec.items||[]).entries()){
+    const isTie=currentActivity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Wall tie / anchor";
+    if(isTie){
+     if(ssPositive(row.count))add(floor.id+":element:"+i+":tie",floor.label+" — "+(rec.specs?.material||"Wall ties"),Number(row.count),"ties");
+     continue;
+    }
+    const type=currentActivity==="Reinforced concrete stiffeners and wall ties"?"Reinforced concrete columns":currentActivity;
+    const materials=ssElementMaterials(type,row,rec.specs);
+    if(materials.error)continue;
+    for(const [j,item]of materials.materials.entries())
+     add(floor.id+":element:"+i+":"+j,floor.label+" — "+(row.ref||currentActivity)+" — "+item.name,item.quantity,item.unit);
+   }
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function validateSuperstructure(){
+ const cfg=getSuperConfig(),records=activityData.details.superstructure||{};
+ for(const floor of cfg.floors){
+  const rec=records[floor.id];if(!rec)continue;
+  if(currentActivity==="Walls"){
+   for(const wall of rec.walls||[]){
+    const r=superWallQuantity(wall);
+    if(r.error){showToast(floor.label+": "+r.error);return false;}
+   }
+  }else if(currentActivity==="Door and window opening formation"){
+   for(const opening of rec.openingTypes||[]){
+    const r=ssOpeningTakeoff(opening);
+    if(r.error){showToast(floor.label+": "+r.error);return false;}
+   }
+  }else{
+   for(const row of rec.items||[]){
+    const q=ssQuantityForRow(currentActivity,row);
+    if(q.error){showToast(floor.label+": "+q.error);return false;}
+    if(["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(currentActivity)&&row.elementType!=="Wall tie / anchor"){
+     const steel=ssRebarQuantity(row.rebar,Number(row.count));
+     if(steel.error){showToast(floor.label+": "+steel.error);return false;}
+    }
+   }
+  }
+ }
+ return true;
+}
+function cloneFloorSpec(original,full){
+ const source=JSON.parse(JSON.stringify(original||{}));
+ if(full){
+  source.walls=(source.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2)}));
+  source.openingTypes=(source.openingTypes||[]).map(o=>({...o,id:"opening-"+Math.random().toString(36).slice(2)}));
+  return source;
+ }
+ return {drawing:source.drawing||"",notes:"",generic:{spec:source.generic?.spec||""},
+  specs:source.specs?{...source.specs}:{},items:[],
+  walls:(source.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2),segments:[]})),
+  openingTypes:(source.openingTypes||[]).map(o=>({...o,id:"opening-"+Math.random().toString(36).slice(2),groups:[]}))};
+}
+
 renderStages();
 showView(stageView);
