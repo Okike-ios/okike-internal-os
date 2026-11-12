@@ -3145,14 +3145,26 @@ function renderSuperWalls(){
       superInput("Mortar joint thickness (mm)",w.joint,'data-super-wall="'+i+'" data-key="joint"',"number")+
       superSelect("Block supply",w.supply,["Purchased blocks","In-house block production"],'data-super-wall="'+i+'" data-key="supply"')+
       superSelect("Laying mortar",w.mortarMethod||"Site-mixed mortar",["Site-mixed mortar","Premixed laying mortar"],'data-super-wall="'+i+'" data-key="mortarMethod"')+
-      superInput("Verified mortar consumption (litres/m²)",w.mortarConsumption||"",'data-super-wall="'+i+'" data-key="mortarConsumption"',"number")+
-      superInput("Mortar specification / mix ratio",w.mortarMix||"",'data-super-wall="'+i+'" data-key="mortarMix"')+'</div>'+
-      '<p class="sub-notice">Mortar quantity is calculated only when a verified project-specific consumption rate is entered. Block production material and laying mortar are separate.</p>';
+      superSelect("Mortar quantity method",w.mortarQuantityMethod||"Geometry",["Geometry","Verified coverage"],'data-super-wall="'+i+'" data-key="mortarQuantityMethod"')+
+      superInput("Verified mortar consumption (L/m²; coverage mode only)",w.mortarConsumption||"",'data-super-wall="'+i+'" data-key="mortarConsumption"',"number")+
+      superInput("Cement parts — laying mortar",w.mortarCement||"",'data-super-wall="'+i+'" data-key="mortarCement"',"number")+
+      superInput("Sand parts — laying mortar",w.mortarSand||"",'data-super-wall="'+i+'" data-key="mortarSand"',"number")+
+      superInput("Other parts — laying mortar",w.mortarOther||"",'data-super-wall="'+i+'" data-key="mortarOther"',"number")+
+      superInput("Verified dry-mix yield factor (optional)",w.mortarYield||"",'data-super-wall="'+i+'" data-key="mortarYield"',"number")+'</div>'+
+      '<p class="sub-notice">Geometry mode derives theoretical bed and vertical joints from actual block dimensions and joints. A manufacturer-tested coverage rate may override it. Cement/sand component volumes need a verified yield factor.</p>';
    if(w.supply==="In-house block production")specific+='<div class="super-wall-grid">'+
-    superInput("Verified blocks produced per batch",w.blocksPerBatch,'data-super-wall="'+i+'" data-key="blocksPerBatch"',"number")+
-    superInput("Cement bags per production batch",w.cementPerBatch,'data-super-wall="'+i+'" data-key="cementPerBatch"',"number")+
-    superInput("Sand (m³) per production batch",w.sandPerBatch,'data-super-wall="'+i+'" data-key="sandPerBatch"',"number")+'</div>'+
-    '<p class="sub-notice">Production yield and mix must be validated from OKIKE records. Laying mortar is separate from block manufacture.</p>';
+    superSelect("Production calculation",w.productionMethod||"batch",["batch","ratio"],'data-super-wall="'+i+'" data-key="productionMethod"')+
+    (w.productionMethod==="ratio"?
+      superInput("Block core / void fraction (0–1)",w.blockVoidFraction||"",'data-super-wall="'+i+'" data-key="blockVoidFraction"',"number")+
+      superInput("Cement parts — production",w.productionCement||"",'data-super-wall="'+i+'" data-key="productionCement"',"number")+
+      superInput("Sand parts — production",w.productionSand||"",'data-super-wall="'+i+'" data-key="productionSand"',"number")+
+      superInput("Aggregate / other parts — production",w.productionOther||"",'data-super-wall="'+i+'" data-key="productionOther"',"number")+
+      superInput("Verified production volume/yield factor",w.productionYield||"",'data-super-wall="'+i+'" data-key="productionYield"',"number"):
+      superInput("Verified blocks produced per batch",w.blocksPerBatch,'data-super-wall="'+i+'" data-key="blocksPerBatch"',"number")+
+      superInput("Cement bags per batch",w.cementPerBatch,'data-super-wall="'+i+'" data-key="cementPerBatch"',"number")+
+      superInput("Sand (m³) per batch",w.sandPerBatch,'data-super-wall="'+i+'" data-key="sandPerBatch"',"number")+
+      superInput("Other aggregate (m³) per batch",w.otherPerBatch||"",'data-super-wall="'+i+'" data-key="otherPerBatch"',"number"))+
+      '</div><p class="sub-notice">Select the verified production method; the other method is never added. These are production resources, separate from laying mortar.</p>';
   }else if(w.type==="Drywall partition")specific='<div class="super-wall-grid">'+
    superInput("Board length (m)",w.boardLength,'data-super-wall="'+i+'" data-key="boardLength"',"number")+
    superInput("Board width (m)",w.boardWidth,'data-super-wall="'+i+'" data-key="boardWidth"',"number")+
@@ -3186,7 +3198,7 @@ function renderSuperWalls(){
   const handler=()=>{const w=walls[Number(el.dataset.superWall)],key=el.dataset.key;w[key]=el.value;
    if(key==="blockSize"){const b=SUPER_BLOCK_SIZES.find(x=>x[0]===el.value);if(b&&b[1]){w.blockLength=String(b[1]);w.blockHeight=String(b[2]);w.blockThickness=String(b[3]);}}
    superDraftChanged();if(key==="lengthMethod"&&el.value==="total")w.segments=(w.segments||[]).slice(0,1);
-   if(["type","blockSize","supply","lengthMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
+   if(["type","blockSize","supply","lengthMethod","productionMethod","mortarQuantityMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
   };
   el.addEventListener(el.tagName==="SELECT"?"change":"input",handler);
  });
@@ -3641,6 +3653,76 @@ function renderSuperWorkTotal(){
  });
  const out=stepContent.querySelector("#superDetailedTotal");
  if(out)out.textContent=valid===rows.length&&rows.length?formatMeasure(total)+" "+(name==="Door and window opening formation"?"openings":name==="Superstructure inspection and quality testing"?"tests":["Reinforced concrete columns","Reinforced concrete beams"].includes(name)?"m³":SUPER_ACTIVITY_FIELDS[name].unit)+(forms?" · Formwork "+formatMeasure(forms)+" m²":""):"— (complete measurement rows)";
+}
+
+/* Approved mortar and block-production methods, physically traceable takeoff. */
+function superWallQuantity(w){
+ const segments=Array.isArray(w.segments)?w.segments:[];if(!segments.length)return {error:"Add a wall measurement segment."};
+ let gross=0,openings=0;
+ for(const row of segments){
+  const l=Number(row.length),h=Number(row.height),o=Number(row.openings||0);
+  if(!(l>0&&h>0&&Number.isFinite(o)&&o>=0&&o<=l*h))return {error:"Complete wall segments and valid opening deductions."};
+  gross+=l*h;openings+=o;
+ }
+ const net=gross-openings,out={gross,openings,net,quantity:net,unit:"m²",materials:[]};
+ const masonry=(w.type||"").includes("blockwork")||w.type==="Brick masonry";
+ if(masonry){
+  const L=Number(w.blockLength)/1000,H=Number(w.blockHeight)/1000,T=Number(w.blockThickness)/1000,J=Number(w.joint)/1000;
+  if(!(L>0&&H>0&&T>0&&J>=0))return {...out,error:"Specify block face dimensions and mortar joint thickness."};
+  const module=(L+J)*(H+J),blocks=Math.ceil(net/module),solid=blocks*L*H*T;
+  out.quantity=blocks;out.unit="blocks";out.method="Net wall area / nominal block module face area; whole block rounding.";
+  // Basic planar bed and vertical joint geometry; excludes hollow core fill and junction waste.
+  const mortar=net*T*(1-L*H/module);
+  const useCoverage=w.mortarQuantityMethod==="Verified coverage";
+  if(useCoverage&&!ssPositive(w.mortarConsumption))return {...out,error:"Enter verified mortar litres/m² or select Geometry mode."};
+  const mortarVolume=useCoverage?net*Number(w.mortarConsumption)/1000:mortar;
+  out.mortarVolume=mortarVolume;
+  out.materials.push({name:"Laying mortar (wet in-place volume)",quantity:mortarVolume,unit:"m³"});
+  const mixParts=[["Cement",w.mortarCement],["Sand",w.mortarSand],["Other",w.mortarOther]].filter(([_,v])=>ssPositive(v));
+  const parts=mixParts.reduce((a,[_,v])=>a+Number(v),0);
+  if(w.mortarMethod!=="Premixed laying mortar"&&parts>0&&ssPositive(w.mortarYield)){
+   out.materials.push(...mixParts.map(([name,v])=>({name:"Laying mortar — "+name,quantity:mortarVolume*Number(w.mortarYield)*Number(v)/parts,unit:"m³ dry component"})));
+  }
+  if(w.supply==="In-house block production"){
+   if(w.productionMethod==="ratio"){
+    const voidFraction=Number(w.blockVoidFraction);
+    if(!Number.isFinite(voidFraction)||voidFraction<0||voidFraction>=1||!ssPositive(w.productionYield))
+      return {...out,materials:out.materials,warning:"Enter verified block void fraction (0–1) and production volume/yield factor."};
+    const volume=solid*(1-voidFraction)*Number(w.productionYield);
+    const blend=[["Cement",w.productionCement],["Sand",w.productionSand],["Other aggregate",w.productionOther]].filter(([_,v])=>ssPositive(v));
+    const total=blend.reduce((t,[_,v])=>t+Number(v),0);
+    if(total>0)out.materials.push(...blend.map(([name,v])=>({name:"Block production — "+name,quantity:volume*Number(v)/total,unit:"m³ dry component"})));
+    else out.warning="Select production mix proportions.";
+   }else{
+    if(!ssPositive(w.blocksPerBatch)||!ssPositive(w.cementPerBatch)||!ssPositive(w.sandPerBatch))
+     out.warning="Enter validated blocks per batch and the actual cement/sand resources per batch.";
+    else{
+     const batches=Math.ceil(blocks/Number(w.blocksPerBatch));
+     out.materials.push({name:"Block production cement",quantity:batches*Number(w.cementPerBatch),unit:"bags"});
+     out.materials.push({name:"Block production sand",quantity:batches*Number(w.sandPerBatch),unit:"m³"});
+     if(ssPositive(w.otherPerBatch))out.materials.push({name:"Block production other aggregate",quantity:batches*Number(w.otherPerBatch),unit:"m³"});
+    }
+   }
+  }else out.materials.unshift({name:w.type+" — "+w.blockSize,quantity:blocks,unit:"blocks"});
+  if(w.mortarMethod==="Premixed laying mortar")out.warning="Premixed mortar price is entered separately; no site mix component allocation.";
+  else if(parts>0&&!ssPositive(w.mortarYield))out.warning="Cement/sand breakdown requires a verified mortar yield factor.";
+  out.method+=" Mortar joint volume is theoretical bed/perpend joint volume; bond, cores and site losses require review.";
+ }else if(w.type==="Drywall partition"){
+  const boardArea=Number(w.boardLength)*Number(w.boardWidth),faces=Number(w.faces),layers=Number(w.layers);
+  if(!(boardArea>0&&faces>0&&layers>0))return {...out,error:"Specify board size, faces and layers."};
+  out.quantity=Math.ceil(net*faces*layers/boardArea);out.unit="boards";
+  out.materials=[{name:"Drywall boards",quantity:out.quantity,unit:"boards"}];
+ }else if(w.type==="Precast wall panels"){
+  const panelArea=Number(w.panelLength)*Number(w.panelWidth);
+  if(!(panelArea>0))return {...out,error:"Specify selected panel dimensions."};
+  out.quantity=Math.ceil(net/panelArea);out.unit="panels";
+  out.materials=[{name:"Precast wall panels",quantity:out.quantity,unit:"panels"}];
+ }else if(w.type==="Cast-in-situ concrete wall"){
+  if(!ssPositive(w.wallThickness))return {...out,error:"Specify concrete wall thickness."};
+  out.quantity=net*Number(w.wallThickness)/1000;out.unit="m³";
+  out.materials=[{name:"In-situ wall concrete",quantity:out.quantity,unit:"m³"}];
+ }
+ return out;
 }
 
 renderStages();
