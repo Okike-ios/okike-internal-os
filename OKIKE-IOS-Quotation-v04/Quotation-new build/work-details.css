@@ -1248,3 +1248,24 @@ body:not([data-theme="dark"]) .secondary-button:hover {background:#f5f3ed;}
 .preview-theme-toggle {display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border,#dedcd3);border-radius:8px;background:var(--white,#fff);color:var(--charcoal,#353b36);font-size:12px;font-weight:600}
 body[data-theme="dark"] .preview-theme-toggle{background:#2b2826;color:#f4f1eb;border-color:#62574e;}
 .preview-theme-toggle:focus-visible{outline:2px solid #c96a32;outline-offset:2px;}
+
+/* OK-SS-002 v0.3 — structured resource rows and fill available grid width */
+.super-resource-subpanel{border:1px solid var(--border,#dedcd3);border-radius:10px;padding:18px;margin:18px 0;background:var(--ivory,#f5f3ed)}
+.super-resource-subpanel h4{margin:0 0 8px;font-size:15px;color:var(--charcoal,#353b36)}
+.super-resource-subpanel>p{font-size:12px;color:var(--muted,#85877f);line-height:1.6;margin-bottom:10px}
+.super-resource-subpanel>label{display:flex;flex-direction:column;align-items:stretch;gap:10px;max-width:460px;margin:12px 0;font-size:13px;font-weight:600}
+.super-resource-subpanel>label select{padding:10px 13px;width:100%;border:1px solid var(--border,#dedcd3);border-radius:8px;background:var(--white,#fff);color:var(--charcoal,#353b36)}
+.super-resource-subpanel .super-detail-grid{margin:15px 0;align-items:start}
+.super-schedule-row{border:1px solid var(--border,#dedcd3);border-radius:9px;padding:12px;margin:10px 0;background:var(--white,#fff)}
+.super-checkbox-row{display:flex;gap:15px;flex-wrap:wrap;margin-top:12px}
+.super-checkbox-row label{display:inline-flex;align-items:center;gap:8px;text-transform:capitalize;font-size:13px;line-height:1.4}
+.super-checkbox-row input{width:17px;height:17px;accent-color:var(--orange,#c96a32)}
+.super-wall-grid>label:has([data-key="lengthMethod"]){grid-column:1/-1;max-width:100%}
+.super-wall-grid>label:has([data-key="lengthMethod"]) select{width:100%}
+.super-wall-card .super-wall-grid>label{min-width:0}
+body[data-theme="dark"] .super-resource-subpanel{background:#262321;border-color:#514942}
+body[data-theme="dark"] .super-resource-subpanel h4,body[data-theme="dark"] .super-checkbox-row label{color:#f4f1eb}
+body[data-theme="dark"] .super-schedule-row{background:#1d1b1b;border-color:#514942}
+body[data-theme="dark"] .super-resource-subpanel>label{color:#f4f1eb}
+body[data-theme="dark"] .super-resource-subpanel select{background:#302b28;color:#f4f1eb;border-color:#655a51}
+@media(max-width:760px){.super-resource-subpanel{padding:13px}.super-checkbox-row{gap:11px}}
