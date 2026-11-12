@@ -3283,7 +3283,7 @@ const SUPER_ACTIVITY_FIELDS={
  "Reinforced concrete columns":{
   intro:"Group columns by structural grid, cross-section, storey height and concrete specification.",
   columns:[["ref","Column mark / grid","text"],["width","Column width (mm)","number"],["depth","Column depth (mm)","number"],["height","Column height (m)","number"],["count","No. of columns","number"]],
-  specs:[["drawing","Structural drawing / revision","text"],["section","Column section","select",["Square / rectangular","Circular — measure separately","Other engineered section"]],["grade","Concrete specification / grade","text"],["reinforcement","Reinforcement schedule / bar mark reference","text"],["formwork","Formwork type / finish","select",["Timber / plywood","Steel panel","Proprietary modular","Other"]],["method","Concrete placement method","select",["Site-mixed","Ready-mix","Specified other"]]],
+  specs:[["drawing","Structural drawing / revision","text"],["section","Column section","select",["Rectangular","Square","Circular"]],["grade","Concrete specification / grade","text"],["reinforcement","Reinforcement schedule / bar mark reference","text"],["formwork","Formwork type / finish","select",["Timber / plywood","Steel panel","Proprietary modular","Other"]],["method","Concrete placement method","select",["Site-mixed","Ready-mix","Specified other"]]],
   calc:"volume",unit:"m³",note:"Gross rectangular column volume = width (m) × depth (m) × height (m) × quantity. Circular and engineered shapes need approved geometry; reinforcement and formwork require independent schedules."
  },
  "Reinforced concrete beams":{
@@ -3378,10 +3378,17 @@ function renderSuperstructureActivityDetails(header,rec){
   '<div id="superWorkRows"></div><div class="super-total-line"><span>Total measured quantity</span><strong id="superDetailedTotal">—</strong></div>'+
   '<p class="sub-notice">'+safe(def.note)+'</p></section>';
  stepContent.querySelectorAll("[data-super-spec]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
-  rec.specs[el.dataset.superSpec]=el.value;superDraftChanged();renderSuperWorkTotal();
+  rec.specs[el.dataset.superSpec]=el.value;
+  if(currentActivity==="Reinforced concrete columns"&&el.dataset.superSpec==="section"){
+    (rec.items||[]).forEach(row=>row.shape=el.value);
+    superDraftChanged();renderSuperWorkRows();
+  }else{superDraftChanged();renderSuperWorkTotal();}
  }));
  stepContent.querySelector("#superAddWorkRow").onclick=()=>{
-  rec.items.push(newSuperWorkRow());superDraftChanged();renderSuperWorkRows();
+  const newRow=newSuperWorkRow();
+  if(currentActivity==="Reinforced concrete columns")newRow.shape=rec.specs.section||"Rectangular";
+  if(currentActivity==="Reinforced concrete stiffeners and wall ties")newRow.elementType="Concrete stiffener";
+  rec.items.push(newRow);superDraftChanged();renderSuperWorkRows();
  };
  renderSuperWorkRows();
 }
@@ -3473,7 +3480,7 @@ function ssMixComponents(volume,mix,purpose){
  return sum>0?parts.map(([name,v])=>({name:purpose+" — "+name,quantity:volume*Number(mix.yieldFactor)*Number(v)/sum,unit:"m³ dry component"})):[];
 }
 function ssElementMaterials(activity,row,specs){
- const base=ssElementQuantity(activity,row);if(base.error)return {...base,materials:[]};
+ const base=ssElementQuantity(activity,row.shape==="Square"?{...row,depth:row.width}:row);if(base.error)return {...base,materials:[]};
  const result=[{name:"Concrete "+(specs?.grade||"grade unspecified"),quantity:base.quantity,unit:"m³"}];
  if(base.formwork>0){
   result.push({name:"Formwork contact area",quantity:base.formwork,unit:"m²"});
