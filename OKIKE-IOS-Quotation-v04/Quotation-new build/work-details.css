@@ -1142,3 +1142,109 @@ button {
 .super-new-floor label{margin:0}
 .super-new-floor .super-floor-actions{margin-top:5px}
 @media(max-width:760px){.super-detail-card{padding:15px}.super-detail-grid,.super-wall-grid{grid-template-columns:1fr;gap:15px}.super-detail-head{flex-direction:column;align-items:stretch}.super-total-line{flex-direction:column;align-items:flex-start}.super-measurement{padding:12px}}
+
+
+/* OK-SS-003: readable light/dark surfaces and contrast for quotation forms.
+   Shared OKIKE preferences set body[data-theme]; do not override global styles. */
+body[data-theme="dark"] .progress-section,
+body[data-theme="dark"] .wizard-card,
+body[data-theme="dark"] .review-card,
+body[data-theme="dark"] .super-floor-config,
+body[data-theme="dark"] .super-wall-card,
+body[data-theme="dark"] .super-new-floor,
+body[data-theme="dark"] .super-detail-card,
+body[data-theme="dark"] .measurement-panel,
+body[data-theme="dark"] .sub-config {
+  background:#1d1b1b;
+  color:#f4f1eb;
+  border-color:#514942;
+}
+body[data-theme="dark"] .progress-top,
+body[data-theme="dark"] .wizard-progress-top,
+body[data-theme="dark"] .progress-labels,
+body[data-theme="dark"] .progress-labels span,
+body[data-theme="dark"] .super-wall-heading,
+body[data-theme="dark"] .super-detail-head h3,
+body[data-theme="dark"] .super-row-head,
+body[data-theme="dark"] .super-wall-result strong {
+  color:#f4f1eb;
+}
+body[data-theme="dark"] .progress-labels .completed {color:#b4c3ad;}
+body[data-theme="dark"] .progress-labels .current {color:#f5a875;}
+body[data-theme="dark"] .progress-track {background:#4b4540;}
+body[data-theme="dark"] .secondary-button,
+body[data-theme="dark"] .activity-siblings button,
+body[data-theme="dark"] .super-floor-chips button:not(.super-active) {
+  background:#2b2826;
+  color:#f4f1eb;
+  border-color:#62574e;
+}
+body[data-theme="dark"] .secondary-button:hover,
+body[data-theme="dark"] .activity-siblings button:hover:not(:disabled) {
+  background:#39322e;
+  color:#fff;
+  border-color:#d78755;
+}
+body[data-theme="dark"] .super-floor-chips button.super-active {
+  background:#c96a32;
+  color:#fff;
+  border-color:#c96a32;
+}
+body[data-theme="dark"] .draft-badge {background:#38312c;color:#eed4b8;}
+body[data-theme="dark"] .super-measurement,
+body[data-theme="dark"] .super-wall-result,
+body[data-theme="dark"] .measure-row {
+  background:#262321;
+  color:#f4f1eb;
+  border-color:#514942;
+}
+body[data-theme="dark"] .super-detail-grid label,
+body[data-theme="dark"] .super-wall-grid label,
+body[data-theme="dark"] .super-new-floor label,
+body[data-theme="dark"] .super-wall-result p,
+body[data-theme="dark"] .super-row-quantity,
+body[data-theme="dark"] .super-total-line,
+body[data-theme="dark"] .super-floor-config h3 {
+  color:#f4f1eb;
+}
+body[data-theme="dark"] .super-detail-head p,
+body[data-theme="dark"] .super-wall-card .sub-notice,
+body[data-theme="dark"] .super-new-floor .sub-notice,
+body[data-theme="dark"] .super-floor-config .sub-notice {
+  color:#c8c2bb;
+}
+body[data-theme="dark"] .super-detail-grid input,
+body[data-theme="dark"] .super-detail-grid select,
+body[data-theme="dark"] .super-wall-grid input,
+body[data-theme="dark"] .super-wall-grid select,
+body[data-theme="dark"] .super-new-floor input,
+body[data-theme="dark"] .super-new-floor select {
+  background:#302b28;
+  color:#f4f1eb;
+  border-color:#655a51;
+}
+body[data-theme="dark"] .super-detail-grid input::placeholder,
+body[data-theme="dark"] .super-wall-grid input::placeholder {
+  color:#b7ada4;
+}
+body[data-theme="dark"] .demo-resource-panel .sub-notice,
+body[data-theme="dark"] #mixPanel .sub-notice {
+  background:#302720;
+  color:#ead2be;
+}
+body[data-theme="dark"] .save-status,
+body[data-theme="dark"] .topbar {
+  color:#f4f1eb;
+}
+body[data-theme="dark"] .section-heading p {color:#c8c2bb;}
+body[data-theme="dark"] button:disabled{opacity:.45;}
+/* Light-theme secondary controls must remain legible too. */
+body:not([data-theme="dark"]) .secondary-button {
+  background:#fff;
+  color:#353b36;
+  border-color:#c9c5bb;
+}
+body:not([data-theme="dark"]) .secondary-button:hover {background:#f5f3ed;}
+.preview-theme-toggle {display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border,#dedcd3);border-radius:8px;background:var(--white,#fff);color:var(--charcoal,#353b36);font-size:12px;font-weight:600}
+body[data-theme="dark"] .preview-theme-toggle{background:#2b2826;color:#f4f1eb;border-color:#62574e;}
+.preview-theme-toggle:focus-visible{outline:2px solid #c96a32;outline-offset:2px;}
