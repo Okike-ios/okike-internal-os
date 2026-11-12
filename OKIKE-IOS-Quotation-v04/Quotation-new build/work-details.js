@@ -2910,7 +2910,7 @@ function newWall(){
   position:"Interior",supply:"Purchased blocks",lengthMethod:"segments",blockSize:SUPER_BLOCK_SIZES[0][0],
   blockLength:"450",blockHeight:"225",blockThickness:"150",joint:"10",faces:"2",layers:"1",
   boardLength:"",boardWidth:"",panelLength:"",panelWidth:"",wallThickness:"",
-  notes:"",cementPerBatch:"",sandPerBatch:"",blocksPerBatch:"",
+  notes:"",cementPerBatch:"",sandPerBatch:"",blocksPerBatch:"",mortarMethod:"Site-mixed mortar",mortarConsumption:"",mortarMix:"",
   segments:[{ref:"",length:"",height:"",openings:"0"}]};
 }
 function superFloorDetails(floorId){
@@ -2962,8 +2962,8 @@ function renderSuperstructureSelector(){
  '<button type="button" class="secondary-button" id="superAddFloor">+ Add floor</button></div>'+
  '<div class="super-floor-chips">'+config.floors.map(f=>'<button type="button" data-floor-open="'+safe(f.id)+'" class="secondary-button '+(f.id===config.active?"super-active":"")+'">'+safe(f.label)+'</button>').join("")+'</div>'+
  '<div id="superFloorCreate" hidden class="super-new-floor"><label>New floor name<input id="superFloorName" placeholder="e.g. First Floor" maxlength="70"></label>'+
- '<label>How should this floor be created?<select id="superCopyMode">'+option("blank","blank")+option("specs","")+option("full","")+'</select></label>'+
- '<label id="superSourceGroup" hidden>Copy from floor<select id="superCopySource">'+config.floors.map(f=>option(f.id,config.active).replace('>'+safe(f.id)+'</option>','>'+safe(f.label)+'</option>')).join("")+'</select></label>'+
+ '<label>How should this floor be created?<select id="superCopyMode"><option value="blank">Start from scratch</option><option value="specs">Copy specifications only</option><option value="full">Duplicate selected floor measurements</option></select></label>'+
+ '<label id="superSourceGroup" hidden>Copy from floor<select id="superCopySource">'+config.floors.map(f=>'<option value="'+safe(f.id)+'" '+(f.id===config.active?'selected':'')+'>'+safe(f.label)+'</option>').join("")+'</select></label>'+
  '<div class="super-floor-actions"><button type="button" class="primary-button" id="superCreateFloor">Create floor</button>'+
  '<button type="button" class="secondary-button" id="superCancelFloor">Cancel</button></div>'+
  '<p class="sub-notice">Start from scratch / Copy specifications only / Duplicate all measurements. Every new floor remains an unconfirmed draft.</p></div>'+
@@ -3009,19 +3009,21 @@ function superWallQuantity(w){
   const blocks=Math.ceil(net/module);
   result.quantity=blocks;result.unit="blocks";result.method="ceil(net area ÷ ((block length + joint) × (block height + joint)))";
   result.materials.push({name:w.type+" — "+w.blockSize,quantity:blocks,unit:"blocks"});
+  if(isPositive(w.mortarConsumption))result.materials.push({name:"Laying mortar — "+(w.mortarMethod||"Site-mixed mortar"),quantity:Number((net*Number(w.mortarConsumption)/1000).toFixed(6)),unit:"m³"});
   if(w.supply==="In-house block production"){
    const perBatch=Number(w.blocksPerBatch),cement=Number(w.cementPerBatch),sand=Number(w.sandPerBatch);
    if([perBatch,cement,sand].every(v=>Number.isFinite(v)&&v>0)){
     const batches=Math.ceil(blocks/perBatch);
     result.materials=[{name:"Cement for block production",quantity:batches*cement,unit:"bags"},
-      {name:"Sand for block production",quantity:batches*sand,unit:"m³"}];
+      {name:"Sand for block production",quantity:batches*sand,unit:"m³"},
+      ...result.materials.filter(r=>r.name.startsWith("Laying mortar"))];
     result.method+="; batches = ceil(blocks ÷ verified batch yield).";
    }else{
     result.materials=[];
     result.warning="Block production quantities require verified yield per batch, cement bags and sand m³ per batch.";
    }
   }else{
-   result.warning="Laying mortar is a separate requirement. Mix and yield cannot be inferred from the block count alone.";
+   result.warning="Laying mortar requires validated consumption, mix and yield. No arbitrary mortar percentage is applied.";
   }
  }else if(type==="Drywall partition"){
   const a=Number(w.boardLength)*Number(w.boardWidth);
@@ -3117,8 +3119,8 @@ function showSuperWizardFloorDialog(){
  const host=stepContent.querySelector("#superWizardCreate"),cfg=getSuperConfig();host.hidden=false;
  host.innerHTML='<h3>Add Superstructure Floor</h3>'+
  superInput("New floor name","",'id="superWizardFloorName"')+
- superSelect("Creation method","blank",["blank","specs","full"],'id="superWizardMode"')+
- superSelect("Copy from","",cfg.floors.map(f=>f.id),'id="superWizardSource"')+
+ '<label>Creation method<select id="superWizardMode"><option value="blank">Start from scratch</option><option value="specs">Copy specifications only</option><option value="full">Duplicate selected floor measurements</option></select></label>'+
+ '<label>Copy from floor<select id="superWizardSource">'+cfg.floors.map(f=>'<option value="'+safe(f.id)+'">'+safe(f.label)+'</option>').join("")+'</select></label>'+
  '<div class="super-floor-actions"><button type="button" class="primary-button" id="superWizardCreateButton">Create floor</button><button type="button" class="secondary-button" id="superWizardCancel">Cancel</button></div>'+
  '<p class="sub-notice">blank = empty; specs = copy material specifications without dimensions; full = duplicate as editable draft.</p>';
  host.querySelector("#superWizardCancel").onclick=()=>host.hidden=true;
@@ -3143,7 +3145,11 @@ function renderSuperWalls(){
       superInput("Block face height (mm)",w.blockHeight,'data-super-wall="'+i+'" data-key="blockHeight"',"number")+
       superInput("Block thickness (mm)",w.blockThickness,'data-super-wall="'+i+'" data-key="blockThickness"',"number")+
       superInput("Mortar joint thickness (mm)",w.joint,'data-super-wall="'+i+'" data-key="joint"',"number")+
-      superSelect("Block supply",w.supply,["Purchased blocks","In-house block production"],'data-super-wall="'+i+'" data-key="supply"')+'</div>';
+      superSelect("Block supply",w.supply,["Purchased blocks","In-house block production"],'data-super-wall="'+i+'" data-key="supply"')+
+      superSelect("Laying mortar",w.mortarMethod||"Site-mixed mortar",["Site-mixed mortar","Premixed laying mortar"],'data-super-wall="'+i+'" data-key="mortarMethod"')+
+      superInput("Verified mortar consumption (litres/m²)",w.mortarConsumption||"",'data-super-wall="'+i+'" data-key="mortarConsumption"',"number")+
+      superInput("Mortar specification / mix ratio",w.mortarMix||"",'data-super-wall="'+i+'" data-key="mortarMix"')+'</div>'+
+      '<p class="sub-notice">Mortar quantity is calculated only when a verified project-specific consumption rate is entered. Block production material and laying mortar are separate.</p>';
    if(w.supply==="In-house block production")specific+='<div class="super-wall-grid">'+
     superInput("Verified blocks produced per batch",w.blocksPerBatch,'data-super-wall="'+i+'" data-key="blocksPerBatch"',"number")+
     superInput("Cement bags per production batch",w.cementPerBatch,'data-super-wall="'+i+'" data-key="cementPerBatch"',"number")+
