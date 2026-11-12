@@ -3289,7 +3289,7 @@ const SUPER_ACTIVITY_FIELDS={
  "Reinforced concrete beams":{
   intro:"Measure beams by span, section and level. Distinguish them from ground beams or upper-floor beams already measured elsewhere.",
   columns:[["ref","Beam mark / grid","text"],["width","Beam width (mm)","number"],["depth","Beam overall depth (mm)","number"],["length","Beam length (m)","number"],["count","No. of beams","number"]],
-  specs:[["drawing","Structural drawing / revision","text"],["kind","Beam type","select",["In-situ reinforced concrete","Precast reinforced concrete","Other engineered beam"]],["grade","Concrete specification / grade","text"],["reinforcement","Beam bar bending schedule reference","text"],["formwork","Soffit and side formwork specification","text"],["overlap","Beam/column/slab intersection measurement note","text"]],
+  specs:[["drawing","Structural drawing / revision","text"],["kind","Beam type","select",["In-situ reinforced concrete","Precast reinforced concrete","Other engineered beam"]],["grade","Concrete specification / grade","text"],["method","Concrete supply method","select",["Ready-mix","Site-mixed"]],["reinforcement","Beam bar bending schedule reference","text"],["formwork","Soffit and side formwork specification","text"],["overlap","Beam/column/slab intersection measurement note","text"]],
   calc:"volume",unit:"m³",note:"Gross beam volume = width (m) × depth (m) × length (m) × number. Deductions at beam-column/slab intersections require the measurement convention to be documented."
  },
  "Door and window opening formation":{
