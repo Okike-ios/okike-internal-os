@@ -3301,7 +3301,7 @@ const SUPER_ACTIVITY_FIELDS={
  "Reinforced concrete stiffeners and wall ties":{
   intro:"Capture stiffener elements and wall ties in separately traceable schedules; do not duplicate measured columns.",
   columns:[["ref","Stiffener or tie reference","text"],["width","Stiffener width (mm)","number"],["depth","Stiffener depth (mm)","number"],["height","Vertical height / length (m)","number"],["count","Quantity","number"]],
-  specs:[["drawing","Structural / wall restraint detail","text"],["element","Element type","select",["Concrete wall stiffener","Wall tie / anchor","Movement-joint restraint","Other"]],["grade","Concrete / metal material specification","text"],["reinforcement","Rebar / anchorage specification","text"]],
+  specs:[["drawing","Structural / wall restraint detail","text"],["element","Element type","select",["Concrete wall stiffener","Wall tie / anchor","Movement-joint restraint","Other"]],["grade","Concrete / metal material specification","text"],["method","Concrete supply method","select",["Ready-mix","Site-mixed"]],["reinforcement","Rebar / anchorage specification","text"]],
   calc:"volume",unit:"m³",note:"Rectangular stiffeners produce gross geometric volume; wall ties and other units require a product-specific quantity schedule."
  },
  "Wall reinforcement and anchoring":{
@@ -3379,6 +3379,9 @@ function renderSuperstructureActivityDetails(header,rec){
   '<p class="sub-notice">'+safe(def.note)+'</p></section>';
  stepContent.querySelectorAll("[data-super-spec]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
   rec.specs[el.dataset.superSpec]=el.value;
+  if(el.dataset.superSpec==="method"){
+    superDraftChanged();renderSuperWorkRows();return;
+  }
   if(currentActivity==="Reinforced concrete columns"&&el.dataset.superSpec==="section"){
     (rec.items||[]).forEach(row=>row.shape=el.value);
     superDraftChanged();renderSuperWorkRows();
@@ -3541,7 +3544,6 @@ function ssFormworkMarkup(row,index,activity){
 function ssMixMarkup(row,index){
  const mix=row.concreteMix||{},at=k=>'data-super-row="'+index+'" data-super-key="concreteMix.'+k+'"';
  return '<div class="super-resource-subpanel"><h4>Site-mixed concrete components</h4><div class="super-detail-grid">'+
- ssChoice("Supply method",mix.type||"ready",["ready","site"],at("type"))+
  ssField("Cement parts",mix.cement||"",at("cement"),"number")+
  ssField("Sand parts",mix.sand||"",at("sand"),"number")+
  ssField("Gravel parts",mix.gravel||"",at("gravel"),"number")+
@@ -3596,8 +3598,9 @@ function ssDetailedRowMarkup(name,row,index){
  if(concrete){
   if(name==="Reinforced concrete columns"&&row.shape!=="Circular")html+='<div class="super-resource-subpanel"><h4>Shuttered column faces</h4><div class="super-checkbox-row">'+
     ["front","back","left","right"].map(face=>'<label><input type="checkbox" data-ss-face="'+index+'" data-face="'+face+'" '+(!row.faces||row.faces.includes(face)?"checked":"")+'>'+face+'</label>').join("")+'</div></div>';
+  const spec=superFloorDetails(getSuperConfig().active).specs||{};
   html+=ssFormworkMarkup(row,index,name==="Reinforced concrete beams"?name:"Reinforced concrete columns")+
-    ssRebarMarkup(row,index)+ssMixMarkup(row,index);
+    ssRebarMarkup(row,index)+(spec.method==="Site-mixed"?ssMixMarkup(row,index):"");
  }
  return html;
 }
