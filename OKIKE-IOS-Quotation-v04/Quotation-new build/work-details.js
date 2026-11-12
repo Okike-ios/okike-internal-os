@@ -189,7 +189,7 @@ function renderFloorSelector(){
 }
 
 function isSubstructure(){return currentStage==="Substructure";}
-function activityCatalog(){return isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
+function activityCatalog(){return isSuperstructure()?superstructureActivities:isSubstructure()?substructureActivities:isGroundFloor()?groundFloorActivities:preliminariesActivities;}
 function getSubConfig(){const d=getProjectData().workDetails?.substructure||{};return {foundationType:d.foundationType||"Not specified",enabled:d.enabled||null};}
 function saveSubConfig(config){const d=getProjectData();d.workDetails ||= {activities:{}};d.workDetails.substructure={...config,updatedAt:new Date().toISOString()};try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));projectData=d;}catch(e){showToast("Could not save foundation settings.");}}
 // These are suggested activity selections, not design-approved exclusions.
@@ -673,7 +673,7 @@ function renderStages() {
 
   stageList.innerHTML = selectedStages.map((stage, index) => {
 
-    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage) && getCompletedActivityCount(stage) > 0;
+    const completed = ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage) && getCompletedActivityCount(stage) > 0;
 
     return `
       <div class="stage-row" data-stage="${safe(stage)}" role="button" tabindex="0" aria-label="Open ${safe(stage)}">
@@ -695,7 +695,7 @@ function renderStages() {
 
         <span class="stage-meta">
           ${
-            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)
+            ["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage)
               ? `${getCompletedActivityCount(stage)} activities completed`
               : "Activities to be defined"
           }
@@ -734,7 +734,7 @@ function openStage(stage) {
   document.getElementById("activityEyebrow").textContent =
     "SELECTED CONSTRUCTION STAGE";
 
-  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction"].includes(stage)) {
+  if (!["Preliminaries & Site Preparation", "Substructure", "Ground Floor Construction", "Superstructure"].includes(stage)) {
 
     activityList.innerHTML = `
       <div class="empty-state">
@@ -763,7 +763,7 @@ function getActivityRecord(name) {
 }
 
 function getCompletedActivityCount(stage = currentStage) {
-  const list = stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
+  const list = stage === "Superstructure" ? superstructureActivities : stage === "Substructure" ? selectedSubActivities() : stage === "Ground Floor Construction" ? activeFloorActivities() : preliminariesActivities;
   return list.filter(name => {
     return getActivityRecord(name)?.confirmed;
   }).length;
@@ -774,10 +774,10 @@ function getCompletedActivityCount(stage = currentStage) {
 // ==========================================
 
 function renderActivities() {
-  const names=isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
+  const names=isSuperstructure()?superstructureActivities:isSubstructure()?selectedSubActivities():isGroundFloor()?activeFloorActivities():preliminariesActivities;
   const completed=getCompletedActivityCount();
   const selector=document.getElementById('foundationSelector');
-  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();}
+  if(selector){selector.hidden=!(isSubstructure()||isGroundFloor()||isSuperstructure());if(isSubstructure())renderFoundationSelector();else if(isGroundFloor())renderFloorSelector();else if(isSuperstructure())renderSuperstructureSelector();}
   document.getElementById('activityProgress').textContent=`${completed} / ${names.length}`;
   activityList.innerHTML=names.length?names.map((name,index)=>{
     const record=getActivityRecord(name),confirmed=!!record?.confirmed;
@@ -1398,6 +1398,8 @@ function renderWorkDetails() {
     return;
   }
 
+  if (isSuperstructure()) { renderSuperstructureDetails(); return; }
+
   if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) {
     renderSubstructureDetails();
     return;
@@ -1633,7 +1635,7 @@ function renderResourceRows(containerId, rows, type) {
 // ==========================================
 
 function renderMaterials() {
-  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();
+  if(isMixActivity())syncMixMaterials();if(hasDemoResource())syncDemoResource();if(isSuperstructure())syncSuperstructureResources();
   stepContent.innerHTML = `
 
     <div class="step-intro">
@@ -2367,6 +2369,8 @@ function renderReview() {
     `;
   }
 
+  if (isSuperstructure()) detailsReview=superstructureReview();
+
   if ((isSubstructure() || isGroundFloor()) && substructureFields[currentActivity]) { detailsReview=substructureReview(); if(hasDemoResource())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER:</strong> Automatically derived material quantities are not commercially approved.</p>'; if(isMixActivity())detailsReview+='<p class="sub-notice"><strong>UNVERIFIED PLACEHOLDER quantities:</strong> not approved for commercial use.</p>'; }
 
   // Generic review for the 11 stage-specific activity forms.
@@ -2443,6 +2447,7 @@ function validateCurrentStep() {
     if (invalid) missing.push(field);
   });
 
+  if (isSuperstructure() && !validateSuperstructure()) return false;
   if ((isSubstructure() || isGroundFloor()) && currentStep===0) {
     const rows=activityData.details.measurements||[];
     const spec=subMeasurements[currentActivity];
@@ -2865,5 +2870,1135 @@ activityList.addEventListener("keydown",event=>{
  if(row&&activityList.contains(row)){event.preventDefault();openSelectedActivity(row.dataset.activity);}
 });
 // Start on the selected Construction Scope. Never preselect a demonstration activity.
+/* OK-SS-001 — Superstructure prototype. All floor records are independent.
+   Source-grounded geometric takeoff is NOT a purchasing allowance or structural design. */
+const superstructureActivities=[
+ "Structural layout and setting out",
+ "Reinforced concrete columns",
+ "Reinforced concrete beams",
+ "Walls",
+ "Door and window opening formation",
+ "Reinforced concrete stiffeners and wall ties",
+ "Wall reinforcement and anchoring",
+ "Concrete and masonry curing",
+ "Superstructure inspection and quality testing"
+];
+const SUPER_WALL_TYPES=[
+ "Non-load-bearing blockwork","Load-bearing blockwork","Brick masonry",
+ "Drywall partition","Precast wall panels","Cast-in-situ concrete wall","Other / custom"
+];
+const SUPER_BLOCK_SIZES=[
+ ["450 × 225 × 150 mm",450,225,150],
+ ["450 × 225 × 225 mm",450,225,225],
+ ["400 × 200 × 150 mm",400,200,150],
+ ["Custom block dimensions",0,0,0]
+];
+function isSuperstructure(){return currentStage==="Superstructure";}
+function getSuperConfig(){
+ const raw=getProjectData().workDetails?.superstructureConfig||{};
+ const floors=Array.isArray(raw.floors)&&raw.floors.length?raw.floors:[{id:"gf",label:"Ground Floor"}];
+ return {floors,active: floors.some(f=>f.id===raw.active)?raw.active:floors[0].id};
+}
+function setSuperActive(id){
+ const data=getProjectData();data.workDetails ||= {activities:{}};
+ const config=getSuperConfig();if(!config.floors.some(f=>f.id===id))return;
+ data.workDetails.superstructureConfig={...config,active:id};
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}
+function newWall(){
+ return {id:"wall-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6),type:"Non-load-bearing blockwork",
+  position:"Interior",supply:"Purchased blocks",lengthMethod:"segments",blockSize:SUPER_BLOCK_SIZES[0][0],
+  blockLength:"450",blockHeight:"225",blockThickness:"150",joint:"10",faces:"2",layers:"1",
+  boardLength:"",boardWidth:"",panelLength:"",panelWidth:"",wallThickness:"",
+  notes:"",cementPerBatch:"",sandPerBatch:"",blocksPerBatch:"",mortarMethod:"Site-mixed mortar",mortarConsumption:"",mortarMix:"",
+  segments:[{ref:"",length:"",height:"",openings:"0"}]};
+}
+function superFloorDetails(floorId){
+ const data=activityData.details;data.superstructure ||= {};
+ data.superstructure[floorId] ||= {notes:"",drawing:"",items:[],walls:[],generic:{length:"",width:"",height:"",count:"1",spec:""}};
+ return data.superstructure[floorId];
+}
+function cloneFloorSpec(original,full){
+ const clone=JSON.parse(JSON.stringify(original||{}));
+ if(full)return clone;
+ const result={notes:"",drawing:clone.drawing||"",generic:{length:"",width:"",height:"",count:"1",spec:clone.generic?.spec||""},items:[]};
+ result.walls=(clone.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2,10),
+   segments:[],notes:w.notes||""}));
+ return result;
+}
+function addSuperFloor(label,mode,source){
+ const clean=String(label||"").trim();
+ const config=getSuperConfig();
+ if(!clean||clean.length>70||config.floors.some(f=>f.label.toLowerCase()===clean.toLowerCase())){
+   showToast("Enter a unique floor name (up to 70 characters).");return false;
+ }
+ if(!["blank","specs","full"].includes(mode)){showToast("Choose how to create the floor.");return false;}
+ if(mode!=="blank"&&!config.floors.some(f=>f.id===source)){showToast("Select a source floor.");return false;}
+ if(currentActivity)saveProjectData();
+ const data=getProjectData(),id="floor-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+ data.workDetails ||= {activities:{}};
+ for(const name of superstructureActivities){
+  const rec=data.workDetails.activities?.[name];if(!rec)continue;
+  rec.details ||= {};rec.details.superstructure ||= {};
+  rec.details.superstructure[id]=mode==="blank"?{notes:"",drawing:"",walls:[],items:[],generic:{}}:cloneFloorSpec(rec.details.superstructure[source],mode==="full");
+  rec.confirmed=false;
+  // Generated rows must be recalculated and old floor-specific rates must not be duplicated.
+  rec.materials=(rec.materials||[]).filter(r=>r.source!=="okike-superstructure-measured");
+ }
+ config.floors.push({id,label:clean});
+ data.workDetails.superstructureConfig={...config,active:id};
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+ if(currentActivity&&isSuperstructure()){
+   const rec=data.workDetails.activities?.[currentActivity];
+   if(rec){activityData=JSON.parse(JSON.stringify(rec));activityData.confirmed=false;}
+ }
+ return true;
+}
+function renderSuperstructureSelector(){
+ const host=document.getElementById("foundationSelector");if(!host)return;
+ const config=getSuperConfig();host.hidden=false;
+ host.innerHTML='<div class="sub-config super-floor-config">'+
+ '<div class="sub-config-header"><div><h3>Superstructure floors</h3><p>All vertical structural activities are captured here. Each floor has independent measurements and costing.</p></div>'+
+ '<button type="button" class="secondary-button" id="superAddFloor">+ Add floor</button></div>'+
+ '<div class="super-floor-chips">'+config.floors.map(f=>'<button type="button" data-floor-open="'+safe(f.id)+'" class="secondary-button '+(f.id===config.active?"super-active":"")+'">'+safe(f.label)+'</button>').join("")+'</div>'+
+ '<div id="superFloorCreate" hidden class="super-new-floor"><label>New floor name<input id="superFloorName" placeholder="e.g. First Floor" maxlength="70"></label>'+
+ '<label>How should this floor be created?<select id="superCopyMode"><option value="blank">Start from scratch</option><option value="specs">Copy specifications only</option><option value="full">Duplicate selected floor measurements</option></select></label>'+
+ '<label id="superSourceGroup" hidden>Copy from floor<select id="superCopySource">'+config.floors.map(f=>'<option value="'+safe(f.id)+'" '+(f.id===config.active?'selected':'')+'>'+safe(f.label)+'</option>').join("")+'</select></label>'+
+ '<div class="super-floor-actions"><button type="button" class="primary-button" id="superCreateFloor">Create floor</button>'+
+ '<button type="button" class="secondary-button" id="superCancelFloor">Cancel</button></div>'+
+ '<p class="sub-notice">Start from scratch / Copy specifications only / Duplicate all measurements. Every new floor remains an unconfirmed draft.</p></div>'+
+ '<p class="sub-notice">The floor selection applies across all nine Superstructure activities.</p></div>';
+ const box=host.querySelector("#superFloorCreate");
+ host.querySelector("#superAddFloor").onclick=()=>{box.hidden=false;};
+ host.querySelector("#superCancelFloor").onclick=()=>{box.hidden=true;};
+ host.querySelector("#superCopyMode").onchange=e=>{host.querySelector("#superSourceGroup").hidden=e.target.value==="blank";};
+ host.querySelector("#superCreateFloor").onclick=()=>{
+  const mode=host.querySelector("#superCopyMode").value;
+  if(addSuperFloor(host.querySelector("#superFloorName").value,mode,host.querySelector("#superCopySource").value)){
+   renderSuperstructureSelector();renderActivities();
+  }
+ };
+ host.querySelectorAll("[data-floor-open]").forEach(button=>button.onclick=()=>{
+  setSuperActive(button.dataset.floorOpen);renderSuperstructureSelector();
+ });
+}
+function superSelect(label,value,options,attr){
+ return '<label>'+safe(label)+'<select '+attr+'>'+options.map(v=>option(v,value)).join("")+'</select></label>';
+}
+function superInput(label,value,attr,type){
+ return '<label>'+safe(label)+'<input type="'+(type||"text")+'" '+attr+' value="'+safe(value??"")+'" '+(type==="number"?'min="0" step="any"':"")+'></label>';
+}
+function superWallQuantity(w){
+ const segments=Array.isArray(w.segments)?w.segments:[];
+ if(!segments.length)return {error:"Add a wall measurement segment."};
+ let gross=0,openings=0;
+ for(const seg of segments){
+  const L=Number(seg.length),H=Number(seg.height),O=Number(seg.openings||0);
+  if(![L,H,O].every(Number.isFinite)||L<=0||H<=0||O<0||O>L*H)
+    return {error:"Complete each wall segment with valid length, height and opening area."};
+  gross+=L*H;openings+=O;
+ }
+ const net=gross-openings; if(net<0)return {error:"Opening area cannot exceed wall area."};
+ const result={gross,openings,net,unit:"m²",quantity:net,materials:[],method:"Net wall coverage."};
+ const type=w.type;
+ if(type.includes("blockwork")||type==="Brick masonry"){
+  const L=Number(w.blockLength),H=Number(w.blockHeight),T=Number(w.blockThickness),J=Number(w.joint);
+  if(![L,H,T,J].every(Number.isFinite)||L<=0||H<=0||T<=0||J<0)
+   return {...result,error:"Select valid block dimensions and mortar joint thickness."};
+  const module=((L+J)/1000)*((H+J)/1000);
+  const blocks=Math.ceil(net/module);
+  result.quantity=blocks;result.unit="blocks";result.method="ceil(net area ÷ ((block length + joint) × (block height + joint)))";
+  result.materials.push({name:w.type+" — "+w.blockSize,quantity:blocks,unit:"blocks"});
+  if(isPositive(w.mortarConsumption))result.materials.push({name:"Laying mortar — "+(w.mortarMethod||"Site-mixed mortar"),quantity:Number((net*Number(w.mortarConsumption)/1000).toFixed(6)),unit:"m³"});
+  if(w.supply==="In-house block production"){
+   const perBatch=Number(w.blocksPerBatch),cement=Number(w.cementPerBatch),sand=Number(w.sandPerBatch);
+   if([perBatch,cement,sand].every(v=>Number.isFinite(v)&&v>0)){
+    const batches=Math.ceil(blocks/perBatch);
+    result.materials=[{name:"Cement for block production",quantity:batches*cement,unit:"bags"},
+      {name:"Sand for block production",quantity:batches*sand,unit:"m³"},
+      ...result.materials.filter(r=>r.name.startsWith("Laying mortar"))];
+    result.method+="; batches = ceil(blocks ÷ verified batch yield).";
+   }else{
+    result.materials=[];
+    result.warning="Block production quantities require verified yield per batch, cement bags and sand m³ per batch.";
+   }
+  }else{
+   result.warning="Laying mortar requires validated consumption, mix and yield. No arbitrary mortar percentage is applied.";
+  }
+ }else if(type==="Drywall partition"){
+  const a=Number(w.boardLength)*Number(w.boardWidth);
+  if(!(a>0)&&net>0)return {...result,error:"Enter selected drywall board length and width in metres."};
+  const faces=Number(w.faces),layers=Number(w.layers);
+  if(!(faces>0&&layers>0))return {...result,error:"Specify number of board faces and layers."};
+  result.quantity=net===0?0:Math.ceil(net*faces*layers/a);result.unit="boards";
+  result.materials=[{name:"Drywall boards",quantity:result.quantity,unit:"boards"}];
+  result.warning="Framing, fixings, joints and cutting losses require separate specifications.";
+ }else if(type==="Precast wall panels"){
+  const a=Number(w.panelLength)*Number(w.panelWidth);
+  if(!(a>0)&&net>0)return {...result,error:"Enter precast panel length and height in metres."};
+  result.quantity=net===0?0:Math.ceil(net/a);result.unit="panels";
+  result.materials=[{name:"Precast wall panels",quantity:result.quantity,unit:"panels"}];
+  result.warning="Panel layout, joints, lifting and anchorage require engineering review.";
+ }else if(type==="Cast-in-situ concrete wall"){
+  const thick=Number(w.wallThickness);
+  if(!Number.isFinite(thick)||thick<=0)return {...result,error:"Enter cast-in-situ wall thickness in millimetres."};
+  result.quantity=net*thick/1000;result.unit="m³";
+  result.materials=[{name:"Cast-in-situ concrete wall",quantity:result.quantity,unit:"m³"}];
+  result.warning="Reinforcement and formwork are independent resources; concrete specification remains subject to design.";
+ }
+ return result;
+}
+function syncSuperstructureResources(){
+ if(!isSuperstructure())return;
+ const source="okike-superstructure-measured",old=activityData.materials||[];
+ const prices=new Map(old.filter(r=>r.source===source).map(r=>[r.materialKey,r]));
+ const manual=old.filter(r=>r.source!==source),generated=[];
+ const floors=activityData.details.superstructure||{};
+ if(currentActivity!=="Walls"){
+  for(const floor of getSuperConfig().floors){
+   const d=floors[floor.id];if(!d)continue;
+   const total=superActivityTotal(currentActivity,d.items||[]);
+   if(!total)continue;
+   const items=[];
+   if(["Reinforced concrete columns","Reinforced concrete beams"].includes(currentActivity))
+    items.push({name:"Concrete — "+currentActivity+" ("+(d.specs?.grade||"grade unspecified")+")",quantity:total.quantity,unit:"m³"});
+   if(currentActivity==="Door and window opening formation"&&total.lintelVolume>0&&d.specs?.lintel==="In-situ reinforced concrete lintel")
+    items.push({name:"In-situ lintel concrete",quantity:total.lintelVolume,unit:"m³"});
+   for(const [i,item] of items.entries()){
+    const key=floor.id+":"+currentActivity+":"+i,oldItem=prices.get(key),name=floor.label+" — "+item.name;
+    generated.push({name,quantity:String(Number(item.quantity.toFixed(6))),unit:item.unit,
+      arrangement:"Purchased",rate:oldItem?.name===name&&oldItem?.unit===item.unit?oldItem.rate||"":"",
+      source,materialKey:key});
+   }
+  }
+ }
+  if(currentActivity==="Walls"){
+  for(const floor of getSuperConfig().floors){
+   const data=floors[floor.id];if(!data)continue;
+   for(const wall of data.walls||[]){
+    const result=superWallQuantity(wall);if(result.error)continue;
+    for(const [i,item] of result.materials.entries()){
+     const key=floor.id+":"+wall.id+":"+i,oldItem=prices.get(key);
+     generated.push({name:floor.label+" — "+item.name,quantity:String(item.quantity),unit:item.unit,
+      arrangement:"Purchased",rate:oldItem?.unit===item.unit&&oldItem?.name===floor.label+" — "+item.name?oldItem.rate||"":"",
+      source,materialKey:key});
+    }
+   }
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function renderSuperstructureDetails(){
+ const config=getSuperConfig(),current=config.active,rec=superFloorDetails(current);
+ const tabs=config.floors.map(f=>'<button type="button" class="secondary-button '+(f.id===current?"super-active":"")+'" data-wizard-floor="'+safe(f.id)+'">'+safe(f.label)+'</button>').join("");
+ const header='<div class="step-intro"><h3>'+safe(currentActivity)+' — '+safe(config.floors.find(f=>f.id===current)?.label||"Floor")+'</h3>'+
+ '<p>Floor-specific Work Details. Each floor is independently measured. No quantities are copied without review.</p></div>'+
+ '<div class="super-floor-chips">'+tabs+'<button type="button" class="secondary-button" id="superWizardAdd">+ Add Floor</button></div>'+
+ '<div id="superWizardCreate" class="super-new-floor" hidden></div>';
+ if(currentActivity==="Walls"){
+   stepContent.innerHTML=header+'<div class="super-wall-controls"><h3>Wall systems</h3><p class="sub-notice">Add one or more wall types. Measurements are recorded by grid reference or overall segments, with openings deducted explicitly.</p><button type="button" class="secondary-button" id="superAddWall">+ Add wall type</button></div><div id="superWalls"></div>';
+   renderSuperWalls();
+   stepContent.querySelector("#superAddWall").onclick=()=>{rec.walls ||= [];rec.walls.push(newWall());superDraftChanged();renderSuperWalls();};
+ }else if(currentActivity==="Door and window opening formation"){
+    renderSuperstructureOpeningDetails(header,rec);
+ }else{
+    renderSuperstructureActivityDetails(header,rec);
+ }
+ stepContent.querySelectorAll("[data-wizard-floor]").forEach(b=>b.onclick=()=>{saveProjectData();setSuperActive(b.dataset.wizardFloor);renderSuperstructureDetails();});
+ stepContent.querySelector("#superWizardAdd").onclick=()=>showSuperWizardFloorDialog();
+}
+function updateSuperGeneric(){
+ const out=document.getElementById("superGenericOutput");if(!out)return;
+ const g=superFloorDetails(getSuperConfig().active).generic||{},l=Number(g.length),w=Number(g.width),h=Number(g.height),n=Number(g.count);
+ const isConcrete=["Reinforced concrete columns","Reinforced concrete beams"].includes(currentActivity);
+ const valid=[l,w,h,n].every(x=>Number.isFinite(x)&&x>0);
+ out.textContent=isConcrete?(valid?formatMeasure(l*w*h*n)+" m³":"— (complete section, height/span and repeats)"):
+  (Number.isFinite(l)&&l>0?formatMeasure(l)+" m measured; confirm specialist quantities":"— (enter applicable measurements)");
+}
+function showSuperWizardFloorDialog(){
+ const host=stepContent.querySelector("#superWizardCreate"),cfg=getSuperConfig();host.hidden=false;
+ host.innerHTML='<h3>Add Superstructure Floor</h3>'+
+ superInput("New floor name","",'id="superWizardFloorName"')+
+ '<label>Creation method<select id="superWizardMode"><option value="blank">Start from scratch</option><option value="specs">Copy specifications only</option><option value="full">Duplicate selected floor measurements</option></select></label>'+
+ '<label>Copy from floor<select id="superWizardSource">'+cfg.floors.map(f=>'<option value="'+safe(f.id)+'">'+safe(f.label)+'</option>').join("")+'</select></label>'+
+ '<div class="super-floor-actions"><button type="button" class="primary-button" id="superWizardCreateButton">Create floor</button><button type="button" class="secondary-button" id="superWizardCancel">Cancel</button></div>'+
+ '<p class="sub-notice">blank = empty; specs = copy material specifications without dimensions; full = duplicate as editable draft.</p>';
+ host.querySelector("#superWizardCancel").onclick=()=>host.hidden=true;
+ host.querySelector("#superWizardCreateButton").onclick=()=>{
+  const id=host.querySelector("#superWizardSource").value||cfg.active;
+  if(addSuperFloor(host.querySelector("#superWizardFloorName").value,host.querySelector("#superWizardMode").value,id)){
+    renderSuperstructureDetails();
+  }
+ };
+}
+function renderSuperWalls(){
+ const container=stepContent.querySelector("#superWalls");if(!container)return;
+ const rec=superFloorDetails(getSuperConfig().active),walls=rec.walls||[];
+ container.innerHTML=walls.length?walls.map((w,i)=>{
+  const result=superWallQuantity(w),blockLike=w.type.includes("blockwork")||w.type==="Brick masonry";
+  const standard=SUPER_BLOCK_SIZES.find(x=>x[0]===w.blockSize);
+  let specific="";
+  if(blockLike){
+   specific='<div class="super-wall-grid">'+
+      superSelect("Block / brick dimensions",w.blockSize,SUPER_BLOCK_SIZES.map(x=>x[0]),'data-super-wall="'+i+'" data-key="blockSize"')+
+      superInput("Block length (mm)",w.blockLength,'data-super-wall="'+i+'" data-key="blockLength"',"number")+
+      superInput("Block face height (mm)",w.blockHeight,'data-super-wall="'+i+'" data-key="blockHeight"',"number")+
+      superInput("Block thickness (mm)",w.blockThickness,'data-super-wall="'+i+'" data-key="blockThickness"',"number")+
+      superInput("Mortar joint thickness (mm)",w.joint,'data-super-wall="'+i+'" data-key="joint"',"number")+
+      superSelect("Block supply",w.supply,["Purchased blocks","In-house block production"],'data-super-wall="'+i+'" data-key="supply"')+
+      superSelect("Laying mortar",w.mortarMethod||"Site-mixed mortar",["Site-mixed mortar","Premixed laying mortar"],'data-super-wall="'+i+'" data-key="mortarMethod"')+
+      superSelect("Mortar quantity method",w.mortarQuantityMethod||"Geometry",["Geometry","Verified coverage"],'data-super-wall="'+i+'" data-key="mortarQuantityMethod"')+
+      superInput("Verified mortar consumption (L/m²; coverage mode only)",w.mortarConsumption||"",'data-super-wall="'+i+'" data-key="mortarConsumption"',"number")+
+      superInput("Cement parts — laying mortar",w.mortarCement||"",'data-super-wall="'+i+'" data-key="mortarCement"',"number")+
+      superInput("Sand parts — laying mortar",w.mortarSand||"",'data-super-wall="'+i+'" data-key="mortarSand"',"number")+
+      superInput("Other parts — laying mortar",w.mortarOther||"",'data-super-wall="'+i+'" data-key="mortarOther"',"number")+
+      superInput("Verified dry-mix yield factor (optional)",w.mortarYield||"",'data-super-wall="'+i+'" data-key="mortarYield"',"number")+'</div>'+
+      '<p class="sub-notice">Geometry mode derives theoretical bed and vertical joints from actual block dimensions and joints. A manufacturer-tested coverage rate may override it. Cement/sand component volumes need a verified yield factor.</p>';
+   if(w.supply==="In-house block production")specific+='<div class="super-wall-grid">'+
+    superSelect("Production calculation",w.productionMethod||"batch",["batch","ratio"],'data-super-wall="'+i+'" data-key="productionMethod"')+
+    (w.productionMethod==="ratio"?
+      superInput("Block core / void fraction (0–1)",w.blockVoidFraction||"",'data-super-wall="'+i+'" data-key="blockVoidFraction"',"number")+
+      superInput("Cement parts — production",w.productionCement||"",'data-super-wall="'+i+'" data-key="productionCement"',"number")+
+      superInput("Sand parts — production",w.productionSand||"",'data-super-wall="'+i+'" data-key="productionSand"',"number")+
+      superInput("Aggregate / other parts — production",w.productionOther||"",'data-super-wall="'+i+'" data-key="productionOther"',"number")+
+      superInput("Verified production volume/yield factor",w.productionYield||"",'data-super-wall="'+i+'" data-key="productionYield"',"number"):
+      superInput("Verified blocks produced per batch",w.blocksPerBatch,'data-super-wall="'+i+'" data-key="blocksPerBatch"',"number")+
+      superInput("Cement bags per batch",w.cementPerBatch,'data-super-wall="'+i+'" data-key="cementPerBatch"',"number")+
+      superInput("Sand (m³) per batch",w.sandPerBatch,'data-super-wall="'+i+'" data-key="sandPerBatch"',"number")+
+      superInput("Other aggregate (m³) per batch",w.otherPerBatch||"",'data-super-wall="'+i+'" data-key="otherPerBatch"',"number"))+
+      '</div><p class="sub-notice">Select the verified production method; the other method is never added. These are production resources, separate from laying mortar.</p>';
+  }else if(w.type==="Drywall partition")specific='<div class="super-wall-grid">'+
+   superInput("Board length (m)",w.boardLength,'data-super-wall="'+i+'" data-key="boardLength"',"number")+
+   superInput("Board width (m)",w.boardWidth,'data-super-wall="'+i+'" data-key="boardWidth"',"number")+
+   superInput("Faces",w.faces,'data-super-wall="'+i+'" data-key="faces"',"number")+
+   superInput("Layers per face",w.layers,'data-super-wall="'+i+'" data-key="layers"',"number")+'</div>';
+  else if(w.type==="Precast wall panels")specific='<div class="super-wall-grid">'+
+   superInput("Panel width (m)",w.panelLength,'data-super-wall="'+i+'" data-key="panelLength"',"number")+
+   superInput("Panel height (m)",w.panelWidth,'data-super-wall="'+i+'" data-key="panelWidth"',"number")+'</div>';
+  else if(w.type==="Cast-in-situ concrete wall")specific='<div class="super-wall-grid">'+
+   superInput("Concrete thickness (mm)",w.wallThickness,'data-super-wall="'+i+'" data-key="wallThickness"',"number")+'</div>';
+  const rows=(w.segments||[]).map((r,j)=>'<div class="super-segment"><strong>Segment '+(j+1)+'</strong><div class="super-wall-grid">'+
+    superInput("Grid reference / location",r.ref,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="ref"')+
+    superInput("Wall length (m)",r.length,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="length"',"number")+
+    superInput("Wall height (m)",r.height,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="height"',"number")+
+    superInput("Opening area (m²)",r.openings,'data-super-segment="'+i+'" data-segment-index="'+j+'" data-segment-key="openings"',"number")+
+    '</div><button type="button" class="secondary-button" data-remove-segment="'+i+'" data-segment-number="'+j+'">Remove segment</button></div>').join("");
+  return '<section class="super-wall-card"><div class="super-wall-heading"><h3>Wall type '+(i+1)+'</h3><button type="button" class="secondary-button" data-remove-wall="'+i+'">Remove wall type</button></div>'+
+    '<div class="super-wall-grid">'+
+    superSelect("Wall type",w.type,SUPER_WALL_TYPES,'data-super-wall="'+i+'" data-key="type"')+
+    superSelect("Wall position",w.position,["Interior","Exterior"],'data-super-wall="'+i+'" data-key="position"')+
+    superSelect("Measurement method",w.lengthMethod,["segments","total"],'data-super-wall="'+i+'" data-key="lengthMethod"')+
+    '</div>'+specific+
+    '<div class="super-segment-heading"><h4>'+ (w.lengthMethod==="total"?"Overall wall dimensions":"Segments / grid-line measurements") +'</h4>'+(w.lengthMethod==="total"?"":'<button type="button" class="secondary-button" data-add-segment="'+i+'">+ Add segment</button>')+'</div>'+
+    rows+
+    '<div class="super-wall-result"><strong>Measured wall: '+(result.error?"Incomplete":formatMeasure(result.net)+" m² net")+'</strong>'+
+    '<p>Calculated material: '+(result.error?"—":formatMeasure(result.quantity)+" "+safe(result.unit))+'</p>'+
+    '<p class="sub-notice">'+safe(result.error||result.warning||result.method)+'</p></div>'+
+    superInput("Specification / notes",w.notes,'data-super-wall="'+i+'" data-key="notes"')+'</section>';
+ }).join(""):'<p class="sub-notice">No wall types added on this floor. Select + Add wall type.</p>';
+ container.querySelectorAll("[data-super-wall]").forEach(el=>{
+  const handler=()=>{const w=walls[Number(el.dataset.superWall)],key=el.dataset.key;w[key]=el.value;
+   if(key==="blockSize"){const b=SUPER_BLOCK_SIZES.find(x=>x[0]===el.value);if(b&&b[1]){w.blockLength=String(b[1]);w.blockHeight=String(b[2]);w.blockThickness=String(b[3]);}}
+   superDraftChanged();if(key==="lengthMethod"&&el.value==="total")w.segments=(w.segments||[]).slice(0,1);
+   if(["type","blockSize","supply","lengthMethod","productionMethod","mortarQuantityMethod"].includes(key))renderSuperWalls();else refreshSuperWallResults();
+  };
+  el.addEventListener(el.tagName==="SELECT"?"change":"input",handler);
+ });
+ container.querySelectorAll("[data-super-segment]").forEach(el=>el.addEventListener("input",()=>{
+  walls[Number(el.dataset.superSegment)].segments[Number(el.dataset.segmentIndex)][el.dataset.segmentKey]=el.value;
+  superDraftChanged();refreshSuperWallResults();
+ }));
+ container.querySelectorAll("[data-add-segment]").forEach(btn=>btn.onclick=()=>{
+  walls[Number(btn.dataset.addSegment)].segments.push({ref:"",length:"",height:"",openings:"0"});
+  superDraftChanged();renderSuperWalls();
+ });
+ container.querySelectorAll("[data-remove-segment]").forEach(btn=>btn.onclick=()=>{
+  walls[Number(btn.dataset.removeSegment)].segments.splice(Number(btn.dataset.segmentNumber),1);
+  superDraftChanged();renderSuperWalls();
+ });
+ container.querySelectorAll("[data-remove-wall]").forEach(btn=>btn.onclick=()=>{
+  walls.splice(Number(btn.dataset.removeWall),1);superDraftChanged();renderSuperWalls();
+ });
+}
+function refreshSuperWallResults(){
+ // Avoid recreating active input elements on each keystroke.
+ const walls=superFloorDetails(getSuperConfig().active).walls||[];
+ stepContent.querySelectorAll(".super-wall-card").forEach((card,i)=>{
+  const result=superWallQuantity(walls[i]),out=card.querySelector(".super-wall-result");
+  if(out)out.innerHTML='<strong>Measured wall: '+(result.error?"Incomplete":formatMeasure(result.net)+" m² net")+'</strong>'+
+    '<p>Calculated material: '+(result.error?"—":formatMeasure(result.quantity)+" "+safe(result.unit))+'</p>'+
+    '<p class="sub-notice">'+safe(result.error||result.warning||result.method)+'</p>';
+ });
+}
+function superDraftChanged(){
+ activityData.confirmed=false;saveProjectData();syncSuperstructureResources();saveProjectData();
+}
+function validateSuperstructure(){
+ const data=activityData.details.superstructure||{},cfg=getSuperConfig();
+ if(currentActivity!=="Walls"){
+  const def=SUPER_ACTIVITY_FIELDS[currentActivity];
+  if(def)for(const f of cfg.floors)for(const row of data[f.id]?.items||[]){
+   const result=superActivityQuantity(currentActivity,row);
+   if(result.error){showToast(f.label+": "+result.error);return false;}
+  }
+ }
+
+ if(currentActivity==="Walls"){
+  for(const f of cfg.floors)for(const w of data[f.id]?.walls||[]){
+   const r=superWallQuantity(w);
+   if(r.error){showToast(f.label+": "+r.error);return false;}
+  }
+ }
+ return true;
+}
+function superstructureReview(){
+ const data=activityData.details.superstructure||{},cfg=getSuperConfig();
+ const lines=cfg.floors.map(f=>{
+  const rec=data[f.id];
+  if(!rec)return '<p>'+safe(f.label)+': No details entered.</p>';
+  if(currentActivity==="Walls")return '<h4>'+safe(f.label)+'</h4>'+
+    (rec.walls||[]).map(w=>{const r=superWallQuantity(w);
+      return '<p>'+safe(w.type)+' ('+safe(w.position)+'): '+(r.error?safe(r.error):formatMeasure(r.net)+" m² net; "+formatMeasure(r.quantity)+" "+safe(r.unit))+'</p>';
+    }).join("");
+  const total=superActivityTotal(currentActivity,rec.items||[]);
+  const spec=Object.values(rec.specs||{}).filter(Boolean).map(safe).join(" · ");
+  return '<p><strong>'+safe(f.label)+'</strong>: '+(total?formatMeasure(total.quantity)+" "+safe(total.unit):"Measurements incomplete")+
+   (spec?" — "+spec:"")+'</p>';
+ }).join("");
+ return '<div class="review-section"><h3>Superstructure Work Details (all floors)</h3>'+lines+
+   '<p class="sub-notice">Preliminary measurements are subject to drawing review; quantities exclude unapproved allowances.</p></div>';
+}
+
+
+/* OK-SS-002 — Activity-specific Work Details. All rows carry a drawing reference,
+ * selected floor, dimensions and construction specification. Quantities describe
+ * measured work only, not an automatically generated structural design. */
+const SUPER_ACTIVITY_FIELDS={
+ "Structural layout and setting out":{
+  intro:"Set out vertical structural grids, wall lines and control points; record the drawing revision, datum and grid references.",
+  columns:[["ref","Grid line / location","text"],["length","Setting-out length (m)","number"],["count","Repeated runs","number"]],
+  specs:[["drawing","Architectural / structural drawing reference","text"],["datum","Survey datum / benchmark","text"],["method","Setting-out method","select",["Total station","Theodolite","Laser level / tape","Manual / other"]],["verification","Control-point verification notes","text"]],
+  calc:"length",unit:"m",note:"Measured set-out line length only; control points, equipment and survey labour are separately costed."
+ },
+ "Reinforced concrete columns":{
+  intro:"Group columns by structural grid, cross-section, storey height and concrete specification.",
+  columns:[["ref","Column mark / grid","text"],["width","Column width (mm)","number"],["depth","Column depth (mm)","number"],["height","Column height (m)","number"],["count","No. of columns","number"]],
+  specs:[["drawing","Structural drawing / revision","text"],["section","Column section","select",["Rectangular","Square","Circular"]],["grade","Concrete specification / grade","text"],["reinforcement","Reinforcement schedule / bar mark reference","text"],["formwork","Formwork type / finish","select",["Timber / plywood","Steel panel","Proprietary modular","Other"]],["method","Concrete placement method","select",["Site-mixed","Ready-mix","Specified other"]]],
+  calc:"volume",unit:"m³",note:"Gross rectangular column volume = width (m) × depth (m) × height (m) × quantity. Circular and engineered shapes need approved geometry; reinforcement and formwork require independent schedules."
+ },
+ "Reinforced concrete beams":{
+  intro:"Measure beams by span, section and level. Distinguish them from ground beams or upper-floor beams already measured elsewhere.",
+  columns:[["ref","Beam mark / grid","text"],["width","Beam width (mm)","number"],["depth","Beam overall depth (mm)","number"],["length","Beam length (m)","number"],["count","No. of beams","number"]],
+  specs:[["drawing","Structural drawing / revision","text"],["kind","Beam type","select",["In-situ reinforced concrete","Precast reinforced concrete","Other engineered beam"]],["grade","Concrete specification / grade","text"],["method","Concrete supply method","select",["Ready-mix","Site-mixed"]],["reinforcement","Beam bar bending schedule reference","text"],["formwork","Soffit and side formwork specification","text"],["overlap","Beam/column/slab intersection measurement note","text"]],
+  calc:"volume",unit:"m³",note:"Gross beam volume = width (m) × depth (m) × length (m) × number. Deductions at beam-column/slab intersections require the measurement convention to be documented."
+ },
+ "Door and window opening formation":{
+  intro:"Record all openings and their lintel requirements within one activity. Wall area deductions remain in Walls; do not deduct openings twice.",
+  columns:[["ref","Opening mark / location","text"],["width","Opening width (m)","number"],["height","Opening height (m)","number"],["count","Number of openings","number"],["lintelLength","Lintel overall length (m, if required)","number"],["lintelWidth","Lintel width (mm, optional)","number"],["lintelDepth","Lintel depth (mm, optional)","number"]],
+  specs:[["drawing","Openings / elevations drawing reference","text"],["openingType","Opening type","select",["Door","Window","Vent / service opening","Mixed / specify per row"]],["lintel","Lintel requirement","select",["Not required / engineer to confirm","Precast concrete lintel","In-situ reinforced concrete lintel","Steel lintel","Other"]],["lintelSection","Lintel section / reinforcement / bearing notes","text"],["finish","Reveal / jamb / sill formation notes","text"]],
+  calc:"openings",unit:"openings",note:"Counts openings and optional total specified lintel run. Lintel concrete, steel, bearing and reinforcement are not inferred from opening width."
+ },
+ "Reinforced concrete stiffeners and wall ties":{
+  intro:"Capture stiffener elements and wall ties in separately traceable schedules; do not duplicate measured columns.",
+  columns:[["ref","Stiffener or tie reference","text"],["width","Stiffener width (mm)","number"],["depth","Stiffener depth (mm)","number"],["height","Vertical height / length (m)","number"],["count","Quantity","number"]],
+  specs:[["drawing","Structural / wall restraint detail","text"],["element","Element type","select",["Concrete wall stiffener","Wall tie / anchor","Movement-joint restraint","Other"]],["grade","Concrete / metal material specification","text"],["method","Concrete supply method","select",["Ready-mix","Site-mixed"]],["reinforcement","Rebar / anchorage specification","text"]],
+  calc:"volume",unit:"m³",note:"Rectangular stiffeners produce gross geometric volume; wall ties and other units require a product-specific quantity schedule."
+ },
+ "Wall reinforcement and anchoring":{
+  intro:"Specify reinforcement accessories, anchorage and spacing; measured quantities come from structural details or product installation schedules.",
+  columns:[["ref","Wall reference / grid","text"],["length","Reinforced wall run (m)","number"],["count","Number of equivalent runs","number"]],
+  specs:[["drawing","Structural masonry / wall detail","text"],["system","Reinforcement system","select",["Bed-joint reinforcement","Vertical reinforcing bars","Cavity / wall ties","Post-installed anchors","Other specified system"]],["spacing","Course spacing / anchorage centres (mm)","number"],["material","Product / bar / fixings specification","text"],["connection","Overlap / termination / connection details","text"]],
+  calc:"length",unit:"m",note:"Net wall-run length is a measurement reference. Product quantities need confirmed course spacing, tie spacing, anchorage lengths and manufacturer/engineer details."
+ },
+ "Concrete and masonry curing":{
+  intro:"Record curing zones, material type, duration and exposure requirements separately for each floor.",
+  columns:[["ref","Curing zone / element","text"],["length","Exposed surface length (m)","number"],["width","Exposed surface width (m)","number"],["count","Surfaces / repeats","number"]],
+  specs:[["drawing","Drawing / curing-zone reference","text"],["method","Specified curing system","select",["Water curing","Wet hessian / coverings","Membrane curing compound","Protective sheeting","Other"]],["period","Specified curing period (days)","number"],["material","Curing product / coverage specification","text"],["conditions","Weather and protection requirements","text"]],
+  calc:"area",unit:"m²",note:"Measured exposed curing area only. No assumed water volume, compound spread rate or sheet laps."
+ },
+ "Superstructure inspection and quality testing":{
+  intro:"Document inspection and testing obligations per floor without inventing laboratory or certification quantities.",
+  columns:[["ref","Inspection / test reference","text"],["count","Number of inspections / tests","number"]],
+  specs:[["drawing","Drawing / inspection plan","text"],["test","Inspection / test type","select",["Concrete tests","Masonry tests","Alignment / dimensional checks","Reinforcement inspection","Formwork inspection","Other"]],["standard","Applicable standard / acceptance criteria","text"],["responsible","Responsible inspector / laboratory","text"],["evidence","Reports / evidence and hold points","text"]],
+  calc:"count",unit:"tests",note:"Schedule count only. Lab tests, samples and rates must follow the approved quality plan."
+ }
+};
+function newSuperWorkRow(){
+ return {ref:"",length:"",width:"",depth:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""};
+}
+function superActivityQuantity(name,row){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return {error:"Activity not configured"};
+ const keys=def.columns.filter(x=>x[2]==="number"&&x[0]!=="lintelLength").map(x=>x[0]);
+ if(keys.some(k=>String(row[k]??"").trim()===""))return {error:"Complete required measurement dimensions."};
+ if(keys.some(k=>!Number.isFinite(Number(row[k]))||Number(row[k])<=0))return {error:"Measurement dimensions must be positive numbers."};
+ const v=k=>Number(row[k]);
+ let quantity=0,secondary=null;
+ if(def.calc==="volume"){
+  quantity=(v("width")/1000)*(v("depth")/1000)*(v("height")||v("length"))*v("count");
+ }else if(def.calc==="length"){
+  quantity=v("length")*v("count");
+ }else if(def.calc==="area"){
+  quantity=v("length")*v("width")*v("count");
+ }else if(def.calc==="openings"){
+  quantity=v("count");
+  const lintel=String(row.lintelLength??"").trim();
+  if(lintel){
+   if(!Number.isFinite(Number(lintel))||Number(lintel)<0)return {error:"Lintel length must be non-negative."};
+   secondary=Number(lintel)*v("count");
+  }
+ }else quantity=v("count");
+ const lintelWidth=String(row.lintelWidth??"").trim(),lintelDepth=String(row.lintelDepth??"").trim();
+ let lintelVolume=null;
+ if(def.calc==="openings"&&(lintelWidth||lintelDepth)){
+  if(!secondary||!(Number(lintelWidth)>0)||!(Number(lintelDepth)>0))return {error:"Enter a lintel length, width and depth together for concrete volume."};
+  lintelVolume=secondary*Number(lintelWidth)/1000*Number(lintelDepth)/1000;
+ }
+ return {quantity,unit:def.unit,secondary,lintelVolume};
+}
+function superActivityTotal(name,rows){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return null;
+ const entries=rows.map(r=>superActivityQuantity(name,r));
+ if(!entries.length||entries.some(e=>e.error))return null;
+ return {quantity:entries.reduce((t,e)=>t+e.quantity,0),unit:def.unit,
+  secondary:entries.reduce((t,e)=>t+(e.secondary||0),0),lintelVolume:entries.reduce((t,e)=>t+(e.lintelVolume||0),0)};
+}
+function renderSuperstructureActivityDetails(header,rec){
+ const def=SUPER_ACTIVITY_FIELDS[currentActivity];
+ if(!def){stepContent.innerHTML=header+'<p class="sub-notice">Detailed requirements are being configured for this activity.</p>';return;}
+ rec.specs ||= {};rec.items ||= [];
+ stepContent.innerHTML=header+
+  '<section class="super-detail-card"><div class="super-detail-head"><div><h3>Construction specifications</h3><p>'+safe(def.intro)+'</p></div></div>'+
+  '<div class="super-detail-grid">'+def.specs.map(([key,label,type,opts])=>{
+   const attr='data-super-spec="'+safe(key)+'"';
+   return type==="select"?superSelect(label,rec.specs[key]||"",["",...opts],attr):
+     superInput(label,rec.specs[key]||"",attr,type==="number"?"number":"text");
+  }).join("")+'</div></section>'+
+  '<section class="super-detail-card"><div class="super-detail-head"><div><h3>Measurement groups</h3><p>Record separate grid references, sizes or locations. Each group has its own calculated quantity.</p></div>'+
+  '<button type="button" class="secondary-button" id="superAddWorkRow">+ Add measurement row</button></div>'+
+  '<div id="superWorkRows"></div><div class="super-total-line"><span>Total measured quantity</span><strong id="superDetailedTotal">—</strong></div>'+
+  '<p class="sub-notice">'+safe(def.note)+'</p></section>';
+ stepContent.querySelectorAll("[data-super-spec]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+  rec.specs[el.dataset.superSpec]=el.value;
+  if(el.dataset.superSpec==="method"){
+    superDraftChanged();renderSuperWorkRows();return;
+  }
+  if(currentActivity==="Reinforced concrete columns"&&el.dataset.superSpec==="section"){
+    (rec.items||[]).forEach(row=>row.shape=el.value);
+    superDraftChanged();renderSuperWorkRows();
+  }else{superDraftChanged();renderSuperWorkTotal();}
+ }));
+ stepContent.querySelector("#superAddWorkRow").onclick=()=>{
+  const newRow=newSuperWorkRow();
+  if(currentActivity==="Reinforced concrete columns")newRow.shape=rec.specs.section||"Rectangular";
+  if(currentActivity==="Reinforced concrete stiffeners and wall ties")newRow.elementType="Concrete stiffener";
+  rec.items.push(newRow);superDraftChanged();renderSuperWorkRows();
+ };
+ renderSuperWorkRows();
+}
+function renderSuperWorkRows(){
+ const def=SUPER_ACTIVITY_FIELDS[currentActivity],rec=superFloorDetails(getSuperConfig().active),host=stepContent.querySelector("#superWorkRows");
+ if(!def||!host)return;
+ rec.items ||= [];
+ host.innerHTML=rec.items.length?rec.items.map((row,index)=>{
+  const res=superActivityQuantity(currentActivity,row);
+  return '<div class="super-measurement"><div class="super-row-head"><strong>Measurement '+(index+1)+'</strong>'+
+   '<button type="button" class="secondary-button" data-super-delete-row="'+index+'">Remove</button></div>'+
+   '<div class="super-detail-grid">'+def.columns.map(([key,label,type])=>
+    superInput(label,row[key]??"", 'data-super-row="'+index+'" data-super-key="'+safe(key)+'"',type)
+   ).join("")+'</div><div class="super-row-quantity" data-super-row-output="'+index+'">'+
+   (res.error?safe(res.error):formatMeasure(res.quantity)+" "+safe(res.unit)+
+    (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"")+
+    (res.lintelVolume!==null?" · Gross lintel concrete: "+formatMeasure(res.lintelVolume)+" m³":""))+'</div></div>';
+ }).join(""):'<p class="sub-notice">No measurement rows added yet. Add a row for each grid line, element type or distinct dimension.</p>';
+ host.querySelectorAll("[data-super-row]").forEach(el=>el.addEventListener("input",()=>{
+  rec.items[Number(el.dataset.superRow)][el.dataset.superKey]=el.value;
+  superDraftChanged();renderSuperWorkTotal();
+ }));
+ host.querySelectorAll("[data-super-delete-row]").forEach(btn=>btn.onclick=()=>{
+  rec.items.splice(Number(btn.dataset.superDeleteRow),1);superDraftChanged();renderSuperWorkRows();
+ });
+ renderSuperWorkTotal();
+}
+function renderSuperWorkTotal(){
+ const rec=superFloorDetails(getSuperConfig().active),rows=rec.items||[],total=superActivityTotal(currentActivity,rows);
+ rows.forEach((row,i)=>{
+  const el=stepContent.querySelector('[data-super-row-output="'+i+'"]');if(!el)return;
+  const res=superActivityQuantity(currentActivity,row);
+  el.textContent=res.error?res.error:formatMeasure(res.quantity)+" "+res.unit+
+   (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"")+
+   (res.lintelVolume!==null?" · Gross lintel concrete: "+formatMeasure(res.lintelVolume)+" m³":"");
+ });
+ const out=stepContent.querySelector("#superDetailedTotal");
+ if(out)out.textContent=total?formatMeasure(total.quantity)+" "+total.unit+
+  (total.secondary?" · Specified lintel runs: "+formatMeasure(total.secondary)+" m":"")+
+  (total.lintelVolume?" · Gross lintel concrete: "+formatMeasure(total.lintelVolume)+" m³":""):"—";
+}
+
+/* OK-SS-002: Geometry and explicit resource calculations; no undocumented wastage or yield. */
+const SS_BAR_DIAMETERS=["8","10","12","16","20","25","32"];
+const ssPositive=v=>String(v??"").trim()!==""&&Number.isFinite(Number(v))&&Number(v)>0;
+function ssSteelKg(length,diameter){return Number(length)*0.006165*Number(diameter)**2;}
+function ssElementQuantity(activity,row){
+ const n=Number(row.count);if(!ssPositive(row.count)||!Number.isInteger(n))return {error:"Specify a whole-number element count."};
+ const h=Number(row.height),l=Number(row.length),w=Number(row.width)/1000,d=Number(row.depth)/1000;
+ if(activity==="Reinforced concrete columns"&&row.shape==="Circular"){
+  const dia=Number(row.diameter)/1000;if(!(dia>0&&h>0))return {error:"Enter circular diameter (mm) and column height (m)."};
+  return {quantity:Math.PI*dia*dia/4*h*n,formwork:Math.PI*dia*h*n,unit:"m³"};
+ }
+ const run=activity==="Reinforced concrete beams"?l:h;
+ if(!(w>0&&d>0&&run>0))return {error:"Complete section dimensions and height/span."};
+ let area;
+ if(activity==="Reinforced concrete beams"){
+  area=((row.soffit==="false"?0:w)+(row.leftSide==="false"?0:d)+(row.rightSide==="false"?0:d))*run*n;
+ }else{
+  const faces=Array.isArray(row.faces)?row.faces:["front","back","left","right"];
+  area=faces.reduce((a,k)=>a+({front:w,back:w,left:d,right:d}[k]||0),0)*run*n;
+ }
+ return {quantity:w*d*run*n,formwork:area,unit:"m³"};
+}
+function ssRebarQuantity(r,n=1){
+ if(!r||r.method==="none"||!r.method)return {materials:[]};
+ const out=[];
+ if(r.method==="schedule"){
+  if(!r.bars?.length)return {error:"Add a bar schedule row.",materials:[]};
+  for(const b of r.bars){
+   if(!ssPositive(b.diameter)||!ssPositive(b.cutLength)||!ssPositive(b.count))return {error:"Complete scheduled bar diameter, cut length and count.",materials:[]};
+   out.push({name:"Scheduled rebar "+b.diameter+"mm"+(b.mark?" — "+b.mark:""),quantity:ssSteelKg(b.cutLength*Number(b.count)*n,b.diameter),unit:"kg"});
+  }
+ }else if(r.method==="guided"){
+  if(!ssPositive(r.mainDiameter)||!ssPositive(r.mainBars)||!ssPositive(r.mainCutLength))return {error:"Specify main bar diameter, count and cut length.",materials:[]};
+  out.push({name:"Main reinforcement "+r.mainDiameter+" mm",quantity:ssSteelKg(r.mainCutLength*Number(r.mainBars)*n,r.mainDiameter),unit:"kg"});
+  if(r.linkDiameter||r.linkSpacing||r.linkCutLength||r.elementLength){
+   if(![r.linkDiameter,r.linkSpacing,r.linkCutLength,r.elementLength].every(ssPositive))return {error:"Complete link diameter, spacing, member length and scheduled link cut length.",materials:[]};
+   const count=Math.ceil(Number(r.elementLength)*1000/Number(r.linkSpacing))+1;
+   out.push({name:"Links "+r.linkDiameter+" mm",quantity:ssSteelKg(count*Number(r.linkCutLength)*n,r.linkDiameter),unit:"kg"});
+  }
+ }else return {error:"Invalid reinforcement method.",materials:[]};
+ return {materials:out};
+}
+function ssMixComponents(volume,mix,purpose){
+ if(!mix||mix.type!=="site"||!ssPositive(mix.yieldFactor))return [];
+ const parts=[["Cement",mix.cement],["Sand",mix.sand],["Gravel",mix.gravel],["Other",mix.other]].filter(([_,v])=>ssPositive(v));
+ const sum=parts.reduce((t,[_,v])=>t+Number(v),0);
+ return sum>0?parts.map(([name,v])=>({name:purpose+" — "+name,quantity:volume*Number(mix.yieldFactor)*Number(v)/sum,unit:"m³ dry component"})):[];
+}
+function ssElementMaterials(activity,row,specs){
+ const base=ssElementQuantity(activity,row.shape==="Square"?{...row,depth:row.width}:row);if(base.error)return {...base,materials:[]};
+ const site=specs?.method==="Site-mixed";
+ const mix=site?ssMixComponents(base.quantity,{...row.concreteMix,type:"site"},"Concrete mix"):[];
+ // Concrete physical volume is reported in Work Details. Only ready-mix volume OR
+ // site-mix ingredients may be priced in Materials, never both.
+ const result=site?[...mix]:[{name:"Ready-mix concrete "+(specs?.grade||"grade unspecified"),quantity:base.quantity,unit:"m³"}];
+ if(base.formwork>0){
+  const fw=row.formwork||{},size=Number(fw.panelWidth)*Number(fw.panelLength);
+  if(fw.system&&fw.system!=="Area only"&&size>0){
+   const reuse=ssPositive(fw.reuses)?Number(fw.reuses):1;
+   result.push({name:fw.system+" panels (theoretical)",quantity:Math.ceil(base.formwork/(size*reuse)),unit:"panels"});
+  }else result.push({name:"Formwork contact area (measure)",quantity:base.formwork,unit:"m²"});
+ }
+ const rebar=ssRebarQuantity(row.rebar,Number(row.count));if(rebar.error)return {error:rebar.error,materials:result};
+ result.push(...rebar.materials);
+ return {...base,materials:result,warning:site&&!mix.length?"Site mix proportions and verified yield factor are required for constituent material quantities.":""};
+}
+function ssField(label,value,attr,type="text"){return superInput(label,value,attr,type);}
+function ssChoice(label,value,values,attr){return superSelect(label,value,values,attr);}
+function ssSetNested(obj,path,val){
+ const keys=path.split(".");let node=obj;
+ for(let i=0;i<keys.length-1;i++){const k=keys[i];node[k] ||= /^\d+$/.test(keys[i+1])?[]:{};node=node[k];}
+ node[keys.at(-1)]=val;
+}
+function ssRebarMarkup(row,index){
+ const r=row.rebar||{},at=k=>'data-super-row="'+index+'" data-super-key="rebar.'+k+'"';
+ let html='<div class="super-resource-subpanel"><h4>Reinforcement schedule</h4>'+
+ ssChoice("Method",r.method||"none",["none","schedule","guided"],at("method"));
+ if(r.method==="guided")html+='<div class="super-detail-grid">'+
+ ssChoice("Main bar diameter (mm)",r.mainDiameter||"",["",...SS_BAR_DIAMETERS],at("mainDiameter"))+
+ ssField("Main bars per element",r.mainBars||"",at("mainBars"),"number")+
+ ssField("Main bar scheduled cut length (m)",r.mainCutLength||"",at("mainCutLength"),"number")+
+ ssChoice("Link diameter (mm)",r.linkDiameter||"",["",...SS_BAR_DIAMETERS],at("linkDiameter"))+
+ ssField("Link spacing (mm)",r.linkSpacing||"",at("linkSpacing"),"number")+
+ ssField("Linked member length (m)",r.elementLength||"",at("elementLength"),"number")+
+ ssField("Link cut length (m)",r.linkCutLength||"",at("linkCutLength"),"number")+'</div>';
+ if(r.method==="schedule")html+=(r.bars||[]).map((b,j)=>'<div class="super-schedule-row"><div class="super-detail-grid">'+
+ ssField("Bar mark",b.mark||"",at("bars."+j+".mark"))+
+ ssChoice("Diameter (mm)",b.diameter||"",["",...SS_BAR_DIAMETERS],at("bars."+j+".diameter"))+
+ ssField("Cut length (m)",b.cutLength||"",at("bars."+j+".cutLength"),"number")+
+ ssField("Bars per element",b.count||"",at("bars."+j+".count"),"number")+
+ '</div><button class="secondary-button" type="button" data-ss-remove-bar="'+index+'" data-ss-bar-index="'+j+'">Remove mark</button></div>').join("")+
+ '<button class="secondary-button" type="button" data-ss-add-bar="'+index+'">+ Add bar mark</button>';
+ return html+'</div>';
+}
+function ssFormworkMarkup(row,index,activity){
+ const fw=row.formwork||{},at=k=>'data-super-row="'+index+'" data-super-key="formwork.'+k+'"';
+ let html='<div class="super-resource-subpanel"><h4>Formwork / shuttering</h4><div class="super-detail-grid">'+
+ ssChoice("Formwork system",fw.system||"Area only",["Area only","Timber / plywood","Steel panel","Proprietary panel","Other"],at("system"))+
+ ssField("Usable panel width (m)",fw.panelWidth||"",at("panelWidth"),"number")+
+ ssField("Usable panel height (m)",fw.panelLength||"",at("panelLength"),"number")+
+ ssField("Validated reuse cycles",fw.reuses||"",at("reuses"),"number");
+ if(activity==="Reinforced concrete beams")html+=
+ ssChoice("Soffit shuttered?",row.soffit||"true",["true","false"],'data-super-row="'+index+'" data-super-key="soffit"')+
+ ssChoice("Left side shuttered?",row.leftSide||"true",["true","false"],'data-super-row="'+index+'" data-super-key="leftSide"')+
+ ssChoice("Right side shuttered?",row.rightSide||"true",["true","false"],'data-super-row="'+index+'" data-super-key="rightSide"');
+ return html+'</div><p class="sub-notice">Geometrical contact area; panel counts are theoretical and exclude props, ties and cutting losses.</p></div>';
+}
+function ssMixMarkup(row,index){
+ const mix=row.concreteMix||{},at=k=>'data-super-row="'+index+'" data-super-key="concreteMix.'+k+'"';
+ return '<div class="super-resource-subpanel"><h4>Site-mixed concrete components</h4><div class="super-detail-grid">'+
+ ssField("Cement parts",mix.cement||"",at("cement"),"number")+
+ ssField("Sand parts",mix.sand||"",at("sand"),"number")+
+ ssField("Gravel parts",mix.gravel||"",at("gravel"),"number")+
+ ssField("Other parts",mix.other||"",at("other"),"number")+
+ ssField("Verified dry yield factor",mix.yieldFactor||"",at("yieldFactor"),"number")+
+ '</div><p class="sub-notice">No default conversion factor or density is assumed. Component volumes require verified project data.</p></div>';
+}
+
+/* Dynamic element form. This intentionally supersedes the earlier generic measurement renderer. */
+function ssShapeColumns(name,row){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return [];
+ if(name==="Reinforced concrete columns"){
+  const cols=[["ref","Column mark / grid","text"],["shape","Column section","select",["Rectangular","Square","Circular"]]];
+  if(row.shape==="Circular")cols.push(["diameter","Diameter (mm)","number"]);
+  else if(row.shape==="Square")cols.push(["width","Side width (mm)","number"]);
+  else cols.push(["width","Width (mm)","number"],["depth","Breadth (mm)","number"]);
+  return [...cols,["height","Column height (m)","number"],["count","Number of columns","number"]];
+ }
+ if(name==="Reinforced concrete beams")return [
+  ["ref","Beam mark / grid","text"],["width","Beam width (mm)","number"],
+  ["depth","Beam overall depth (mm)","number"],["length","Beam span (m)","number"],
+  ["count","Number of beams","number"]];
+ if(name==="Reinforced concrete stiffeners and wall ties"){
+  const columns=[["ref","Element mark / grid","text"],["elementType","Element type","select",["Concrete stiffener","Wall tie / anchor"]]];
+  if(row.elementType!=="Wall tie / anchor")columns.push(
+   ["width","Stiffener width (mm)","number"],["depth","Stiffener breadth (mm)","number"],["height","Stiffener height (m)","number"]);
+  return [...columns,["count","Number of elements","number"]];
+ }
+ return def.columns;
+}
+function ssQuantityForRow(activity,row){
+ if(activity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Wall tie / anchor"){
+  if(!ssPositive(row.count)||!Number.isInteger(Number(row.count)))return {error:"Enter number of specified wall ties."};
+  return {quantity:Number(row.count),unit:"ties",formwork:0};
+ }
+ if(activity==="Reinforced concrete columns"||activity==="Reinforced concrete beams"||
+ (activity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Concrete stiffener")){
+  const adjusted={...row};
+  if(row.shape==="Square")adjusted.depth=row.width;
+  return ssElementQuantity(activity==="Reinforced concrete stiffeners and wall ties"?"Reinforced concrete columns":activity,adjusted);
+ }
+ return superActivityQuantity(activity,row);
+}
+function ssDetailedRowMarkup(name,row,index){
+ const cols=ssShapeColumns(name,row);
+ const at=k=>'data-super-row="'+index+'" data-super-key="'+k+'"';
+ let html='<div class="super-detail-grid">'+cols.map(([key,label,type,opts])=>
+  type==="select"?ssChoice(label,row[key]||opts[0],opts,at(key)):ssField(label,row[key]??"",at(key),type)
+ ).join("")+'</div>';
+ const concrete=["Reinforced concrete columns","Reinforced concrete beams"].includes(name)||
+  (name==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Concrete stiffener");
+ if(concrete){
+  if(name==="Reinforced concrete columns"&&row.shape!=="Circular")html+='<div class="super-resource-subpanel"><h4>Shuttered column faces</h4><div class="super-checkbox-row">'+
+    ["front","back","left","right"].map(face=>'<label><input type="checkbox" data-ss-face="'+index+'" data-face="'+face+'" '+(!row.faces||row.faces.includes(face)?"checked":"")+'>'+face+'</label>').join("")+'</div></div>';
+  const spec=superFloorDetails(getSuperConfig().active).specs||{};
+  html+=ssFormworkMarkup(row,index,name==="Reinforced concrete beams"?name:"Reinforced concrete columns")+
+    ssRebarMarkup(row,index)+(spec.method==="Site-mixed"?ssMixMarkup(row,index):"");
+ }
+ return html;
+}
+function renderSuperWorkRows(){
+ const name=currentActivity,def=SUPER_ACTIVITY_FIELDS[name],rec=superFloorDetails(getSuperConfig().active);
+ const host=stepContent.querySelector("#superWorkRows");if(!def||!host)return;
+ rec.items ||= [];
+ host.innerHTML=rec.items.length?rec.items.map((row,index)=>{
+  const result=ssQuantityForRow(name,row);
+  const actual=result.error?safe(result.error):formatMeasure(result.quantity)+" "+safe(result.unit)+
+  (result.formwork!==undefined?" · Formwork "+formatMeasure(result.formwork)+" m²":"");
+  return '<section class="super-measurement"><div class="super-row-head"><strong>Measurement '+(index+1)+'</strong>'+
+   '<button class="secondary-button" type="button" data-super-delete-row="'+index+'">Remove</button></div>'+
+   ssDetailedRowMarkup(name,row,index)+
+   '<div class="super-row-quantity" data-super-row-output="'+index+'">'+actual+'</div></section>';
+ }).join(""):'<p class="sub-notice">Add one measurement group per distinct structural section, grid reference or element specification.</p>';
+ host.querySelectorAll("[data-super-row]").forEach(el=>{
+  el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+   const idx=Number(el.dataset.superRow),key=el.dataset.superKey,row=rec.items[idx];
+   ssSetNested(row,key,el.value);
+   if(key==="shape"||key==="elementType"||key==="rebar.method"){superDraftChanged();renderSuperWorkRows();return;}
+   superDraftChanged();renderSuperWorkTotal();
+  });
+ });
+ host.querySelectorAll("[data-ss-face]").forEach(el=>el.addEventListener("change",()=>{
+  const row=rec.items[Number(el.dataset.ssFace)];
+  const faces=["front","back","left","right"];
+  row.faces=faces.filter(face=>{
+   const input=Array.from(host.querySelectorAll("[data-ss-face]")).find(x=>Number(x.dataset.ssFace)===Number(el.dataset.ssFace)&&x.dataset.face===face);
+   return input?.checked;
+  });
+  superDraftChanged();renderSuperWorkTotal();
+ }));
+ host.querySelectorAll("[data-ss-add-bar]").forEach(b=>b.onclick=()=>{
+  const row=rec.items[Number(b.dataset.ssAddBar)];
+  row.rebar ||= {method:"schedule",bars:[]};row.rebar.bars ||= [];
+  row.rebar.bars.push({mark:"",diameter:"",cutLength:"",count:""});
+  superDraftChanged();renderSuperWorkRows();
+ });
+ host.querySelectorAll("[data-ss-remove-bar]").forEach(b=>b.onclick=()=>{
+  rec.items[Number(b.dataset.ssRemoveBar)].rebar?.bars?.splice(Number(b.dataset.ssBarIndex),1);
+  superDraftChanged();renderSuperWorkRows();
+ });
+ host.querySelectorAll("[data-super-delete-row]").forEach(b=>b.onclick=()=>{
+  rec.items.splice(Number(b.dataset.superDeleteRow),1);superDraftChanged();renderSuperWorkRows();
+ });
+ renderSuperWorkTotal();
+}
+function renderSuperWorkTotal(){
+ const rec=superFloorDetails(getSuperConfig().active),rows=rec.items||[],name=currentActivity;
+ let total=0,forms=0,valid=0;
+ rows.forEach((row,i)=>{
+  const r=ssQuantityForRow(name,row),el=stepContent.querySelector('[data-super-row-output="'+i+'"]');
+  if(!r.error){total+=r.quantity;forms+=r.formwork||0;valid++;}
+  if(el){
+    let text=r.error?r.error:formatMeasure(r.quantity)+" "+r.unit+(r.formwork!==undefined?" · Formwork "+formatMeasure(r.formwork)+" m²":"");
+    if(!r.error&&["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(name)&&row.elementType!=="Wall tie / anchor"){
+      const steel=ssRebarQuantity(row.rebar,Number(row.count));
+      if(steel.error)text+=" · "+steel.error;
+      else if(steel.materials.length)text+=" · Rebar "+formatMeasure(steel.materials.reduce((v,m)=>v+m.quantity,0))+" kg";
+    }
+    el.textContent=text;
+  }
+ });
+ const out=stepContent.querySelector("#superDetailedTotal");
+ if(out){
+  if(valid!==rows.length||!rows.length)out.textContent="— (complete measurement rows)";
+  else if(name==="Reinforced concrete stiffeners and wall ties"){
+    const ties=rows.filter(r=>r.elementType==="Wall tie / anchor").reduce((t,r)=>t+Number(r.count||0),0);
+    const volume=rows.filter(r=>r.elementType!=="Wall tie / anchor").reduce((t,r)=>t+(ssQuantityForRow(name,r).quantity||0),0);
+    out.textContent=formatMeasure(volume)+" m³ stiffeners · "+formatMeasure(ties)+" ties"+(forms?" · "+formatMeasure(forms)+" m² formwork":"");
+  }else out.textContent=formatMeasure(total)+" "+(name==="Superstructure inspection and quality testing"?"tests":["Reinforced concrete columns","Reinforced concrete beams"].includes(name)?"m³":SUPER_ACTIVITY_FIELDS[name].unit)+(forms?" · Formwork "+formatMeasure(forms)+" m²":"");
+ }
+}
+
+/* Approved mortar and block-production methods, physically traceable takeoff. */
+function superWallQuantity(w){
+ const segments=Array.isArray(w.segments)?w.segments:[];if(!segments.length)return {error:"Add a wall measurement segment."};
+ let gross=0,openings=0;
+ for(const row of segments){
+  const l=Number(row.length),h=Number(row.height),o=Number(row.openings||0);
+  if(!(l>0&&h>0&&Number.isFinite(o)&&o>=0&&o<=l*h))return {error:"Complete wall segments and valid opening deductions."};
+  gross+=l*h;openings+=o;
+ }
+ const net=gross-openings,out={gross,openings,net,quantity:net,unit:"m²",materials:[]};
+ const masonry=(w.type||"").includes("blockwork")||w.type==="Brick masonry";
+ if(masonry){
+  const L=Number(w.blockLength)/1000,H=Number(w.blockHeight)/1000,T=Number(w.blockThickness)/1000,J=Number(w.joint)/1000;
+  if(!(L>0&&H>0&&T>0&&J>=0))return {...out,error:"Specify block face dimensions and mortar joint thickness."};
+  const module=(L+J)*(H+J),blocks=Math.ceil(net/module),solid=blocks*L*H*T;
+  out.quantity=blocks;out.unit="blocks";out.method="Net wall area / nominal block module face area; whole block rounding.";
+  // Basic planar bed and vertical joint geometry; excludes hollow core fill and junction waste.
+  const mortar=net*T*(1-L*H/module);
+  const useCoverage=w.mortarQuantityMethod==="Verified coverage";
+  if(useCoverage&&!ssPositive(w.mortarConsumption))return {...out,error:"Enter verified mortar litres/m² or select Geometry mode."};
+  const mortarVolume=useCoverage?net*Number(w.mortarConsumption)/1000:mortar;
+  out.mortarVolume=mortarVolume;
+  const mixParts=[["Cement",w.mortarCement],["Sand",w.mortarSand],["Other",w.mortarOther]].filter(([_,v])=>ssPositive(v));
+  const parts=mixParts.reduce((a,[_,v])=>a+Number(v),0);
+  if(w.mortarMethod==="Premixed laying mortar"){
+   out.materials.push({name:"Premixed laying mortar",quantity:mortarVolume,unit:"m³"});
+  }else if(parts>0&&ssPositive(w.mortarYield)){
+   out.materials.push(...mixParts.map(([name,v])=>({name:"Laying mortar — "+name,quantity:mortarVolume*Number(w.mortarYield)*Number(v)/parts,unit:"m³ dry component"})));
+  }
+  if(w.supply==="In-house block production"){
+   if(w.productionMethod==="ratio"){
+    const voidFraction=Number(w.blockVoidFraction);
+    if(!Number.isFinite(voidFraction)||voidFraction<0||voidFraction>=1||!ssPositive(w.productionYield))
+      return {...out,materials:out.materials,warning:"Enter verified block void fraction (0–1) and production volume/yield factor."};
+    const volume=solid*(1-voidFraction)*Number(w.productionYield);
+    const blend=[["Cement",w.productionCement],["Sand",w.productionSand],["Other aggregate",w.productionOther]].filter(([_,v])=>ssPositive(v));
+    const total=blend.reduce((t,[_,v])=>t+Number(v),0);
+    if(total>0)out.materials.push(...blend.map(([name,v])=>({name:"Block production — "+name,quantity:volume*Number(v)/total,unit:"m³ dry component"})));
+    else out.warning="Select production mix proportions.";
+   }else{
+    if(!ssPositive(w.blocksPerBatch)||!ssPositive(w.cementPerBatch)||!ssPositive(w.sandPerBatch))
+     out.warning="Enter validated blocks per batch and the actual cement/sand resources per batch.";
+    else{
+     const batches=Math.ceil(blocks/Number(w.blocksPerBatch));
+     out.materials.push({name:"Block production cement",quantity:batches*Number(w.cementPerBatch),unit:"bags"});
+     out.materials.push({name:"Block production sand",quantity:batches*Number(w.sandPerBatch),unit:"m³"});
+     if(ssPositive(w.otherPerBatch))out.materials.push({name:"Block production other aggregate",quantity:batches*Number(w.otherPerBatch),unit:"m³"});
+    }
+   }
+  }else out.materials.unshift({name:w.type+" — "+w.blockSize,quantity:blocks,unit:"blocks"});
+  if(w.mortarMethod==="Premixed laying mortar")out.warning="Premixed mortar price is entered separately; no site mix component allocation.";
+  else if(parts>0&&!ssPositive(w.mortarYield))out.warning="Cement/sand breakdown requires a verified mortar yield factor.";
+  out.method+=" Mortar joint volume is theoretical bed/perpend joint volume; bond, cores and site losses require review.";
+ }else if(w.type==="Drywall partition"){
+  const boardArea=Number(w.boardLength)*Number(w.boardWidth),faces=Number(w.faces),layers=Number(w.layers);
+  if(!(boardArea>0&&faces>0&&layers>0))return {...out,error:"Specify board size, faces and layers."};
+  out.quantity=Math.ceil(net*faces*layers/boardArea);out.unit="boards";
+  out.materials=[{name:"Drywall boards",quantity:out.quantity,unit:"boards"}];
+ }else if(w.type==="Precast wall panels"){
+  const panelArea=Number(w.panelLength)*Number(w.panelWidth);
+  if(!(panelArea>0))return {...out,error:"Specify selected panel dimensions."};
+  out.quantity=Math.ceil(net/panelArea);out.unit="panels";
+  out.materials=[{name:"Precast wall panels",quantity:out.quantity,unit:"panels"}];
+ }else if(w.type==="Cast-in-situ concrete wall"){
+  if(!ssPositive(w.wallThickness))return {...out,error:"Specify concrete wall thickness."};
+  out.quantity=net*Number(w.wallThickness)/1000;out.unit="m³";
+  out.materials=[{name:"In-situ wall concrete",quantity:out.quantity,unit:"m³"}];
+ }
+ return out;
+}
+
+function ssOpeningNew(){
+ return {id:"opening-"+Math.random().toString(36).slice(2,10),type:"Door",reference:"",lintel:"Not required",
+   concreteGrade:"",formworkSystem:"Area only",formPanelWidth:"",formPanelLength:"",rebar:{method:"none"},
+   concreteMix:{type:"ready"},groups:[{ref:"",width:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""}]};
+}
+function ssOpeningTakeoff(o){
+ let count=0,openingArea=0,lintelVolume=0,formwork=0;
+ if(!o.groups?.length)return {error:"Add at least one opening measurement group."};
+ for(const row of o.groups){
+  const n=Number(row.count),w=Number(row.width),h=Number(row.height);
+  if(!(n>0&&Number.isInteger(n)&&w>0&&h>0))return {error:"Complete opening width, height and count."};
+  count+=n;openingArea+=n*w*h;
+  if(o.lintel==="In-situ reinforced concrete lintel"){
+   const l=Number(row.lintelLength),bw=Number(row.lintelWidth)/1000,d=Number(row.lintelDepth)/1000;
+   if(!(l>0&&bw>0&&d>0))return {error:"Enter the specified in-situ lintel length (m), width (mm) and depth (mm)."};
+   lintelVolume+=bw*d*l*n;
+   // Conventional lintel soffit and two sides, if exposed. End faces not assumed.
+   formwork+=(bw+2*d)*l*n;
+  }
+ }
+ const materials=[];
+ if(o.lintel==="In-situ reinforced concrete lintel"){
+  // In-situ lintel concrete may be ready-mixed OR produced from constituent materials.
+  const site=o.concreteMix?.type==="site";
+  const componentRows=site?ssMixComponents(lintelVolume,o.concreteMix,"Lintel concrete mix"):[];
+  if(site)materials.push(...componentRows);
+  else materials.push({name:"Ready-mix lintel concrete "+(o.concreteGrade||""),quantity:lintelVolume,unit:"m³"});
+  if(ssPositive(o.formPanelLength)&&ssPositive(o.formPanelWidth)&&o.formworkSystem!=="Area only")
+    materials.push({name:o.formworkSystem+" lintel formwork panels",quantity:Math.ceil(formwork/(Number(o.formPanelLength)*Number(o.formPanelWidth))),unit:"panels"});
+  else materials.push({name:"Lintel formwork contact area (measure)",quantity:formwork,unit:"m²"});
+  const steel=ssRebarQuantity(o.rebar,count);
+  if(steel.error)return {error:steel.error};
+  materials.push(...steel.materials);
+ }else if(o.lintel!=="Not required"){
+  materials.push({name:o.lintel+" — "+(o.reference||o.type),quantity:count,unit:"lintels"});
+ }
+ return {count,openingArea,lintelVolume,formwork,materials};
+}
+function renderSuperstructureOpeningDetails(header,rec){
+ rec.openingTypes ||= [];
+ stepContent.innerHTML=header+'<section class="super-detail-card"><div class="super-detail-head"><div><h3>Doors, windows and their lintels</h3>'+
+ '<p>Add different opening types. Each type can have several grid/location measurement groups while sharing lintel specifications.</p></div>'+
+ '<button class="secondary-button" type="button" id="ssAddOpening">+ Add opening type</button></div><div id="ssOpeningTypes"></div>'+
+ '<p class="sub-notice">Deduct openings only in the corresponding Wall measurement once. No automatic deduction will be applied to Walls from this schedule.</p></section>';
+ stepContent.querySelector("#ssAddOpening").onclick=()=>{
+  rec.openingTypes.push(ssOpeningNew());superDraftChanged();renderSuperOpeningTypes();
+ };
+ renderSuperOpeningTypes();
+}
+function renderSuperOpeningTypes(){
+ const host=stepContent.querySelector("#ssOpeningTypes");if(!host)return;
+ const rec=superFloorDetails(getSuperConfig().active),types=rec.openingTypes||[];
+ host.innerHTML=types.length?types.map((o,i)=>{
+  const r=ssOpeningTakeoff(o),attr=k=>'data-ss-opening="'+i+'" data-ss-field="'+k+'"';
+  let html='<div class="super-measurement"><div class="super-row-head"><h3>Opening type '+(i+1)+'</h3><button class="secondary-button" type="button" data-ss-remove-opening="'+i+'">Remove type</button></div>'+
+   '<div class="super-detail-grid">'+
+   ssChoice("Opening type",o.type,["Door","Window","Vent","Other"],attr("type"))+
+   ssField("Type mark / drawing reference",o.reference||"",attr("reference"))+
+   ssChoice("Lintel type",o.lintel,["Not required","In-situ reinforced concrete lintel","Precast concrete lintel","Steel lintel","Other"],attr("lintel"));
+  if(o.lintel==="In-situ reinforced concrete lintel")html+=
+   ssField("Concrete grade",o.concreteGrade||"",attr("concreteGrade"))+
+   ssChoice("Formwork system",o.formworkSystem||"Area only",["Area only","Timber / plywood","Steel panel","Proprietary panel"],attr("formworkSystem"))+
+   ssField("Formwork panel width (m)",o.formPanelWidth||"",attr("formPanelWidth"),"number")+
+   ssField("Formwork panel length (m)",o.formPanelLength||"",attr("formPanelLength"),"number");
+  html+='</div><div class="super-segment-heading"><h4>Opening measurement groups</h4><button class="secondary-button" type="button" data-ss-add-opening-group="'+i+'">+ Add measurement group</button></div>';
+  html+=(o.groups||[]).map((g,j)=>{
+   const gat=k=>'data-ss-opening-group="'+i+'" data-ss-group="'+j+'" data-ss-group-key="'+k+'"';
+   return '<div class="super-segment"><div class="super-row-head"><strong>Group '+(j+1)+'</strong><button class="secondary-button" type="button" data-ss-remove-opening-group="'+i+'" data-ss-group="'+j+'">Remove</button></div><div class="super-detail-grid">'+
+   ssField("Grid / location",g.ref||"",gat("ref"))+
+   ssField("Opening width (m)",g.width||"",gat("width"),"number")+
+   ssField("Opening height (m)",g.height||"",gat("height"),"number")+
+   ssField("No. of openings",g.count||"1",gat("count"),"number")+
+   (o.lintel==="In-situ reinforced concrete lintel"?
+     ssField("Specified lintel length (m)",g.lintelLength||"",gat("lintelLength"),"number")+
+     ssField("Lintel width (mm)",g.lintelWidth||"",gat("lintelWidth"),"number")+
+     ssField("Lintel depth (mm)",g.lintelDepth||"",gat("lintelDepth"),"number"):"")+
+   '</div></div>';
+  }).join("");
+  if(o.lintel==="In-situ reinforced concrete lintel"){
+   // Rebar schedule is shared across this opening type; item counts represent bars per lintel.
+   html+='<div class="super-resource-subpanel"><h4>Lintel reinforcement and concrete material breakdown</h4>'+
+    ssChoice("Reinforcement method",o.rebar?.method||"none",["none","schedule","guided"],attr("rebar.method"))+
+    (o.rebar?.method==="guided"?'<div class="super-detail-grid">'+
+     ssChoice("Main bar diameter (mm)",o.rebar?.mainDiameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.mainDiameter"))+
+     ssField("Bars per lintel",o.rebar?.mainBars||"",attr("rebar.mainBars"),"number")+
+     ssField("Scheduled cut length (m)",o.rebar?.mainCutLength||"",attr("rebar.mainCutLength"),"number")+
+     ssChoice("Link diameter (mm)",o.rebar?.linkDiameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.linkDiameter"))+
+     ssField("Link spacing (mm)",o.rebar?.linkSpacing||"",attr("rebar.linkSpacing"),"number")+
+     ssField("Length over which links occur (m)",o.rebar?.elementLength||"",attr("rebar.elementLength"),"number")+
+     ssField("Scheduled link cut length (m)",o.rebar?.linkCutLength||"",attr("rebar.linkCutLength"),"number")+'</div>':
+     o.rebar?.method==="schedule"?(o.rebar?.bars||[]).map((b,k)=>'<div class="super-schedule-row"><div class="super-detail-grid">'+
+      ssField("Bar mark",b.mark||"",attr("rebar.bars."+k+".mark"))+
+      ssChoice("Bar diameter (mm)",b.diameter||"",["",...SS_BAR_DIAMETERS],attr("rebar.bars."+k+".diameter"))+
+      ssField("Cut length (m)",b.cutLength||"",attr("rebar.bars."+k+".cutLength"),"number")+
+      ssField("Bars per lintel",b.count||"",attr("rebar.bars."+k+".count"),"number")+
+      '</div><button class="secondary-button" type="button" data-ss-remove-opening-bar="'+i+'" data-ss-bar="'+k+'">Remove bar</button></div>').join("")+
+      '<button class="secondary-button" type="button" data-ss-add-opening-bar="'+i+'">+ Add bar schedule mark</button>':"")+
+    '<div class="super-detail-grid">'+
+    ssChoice("Concrete material supply",o.concreteMix?.type||"ready",["ready","site"],attr("concreteMix.type"))+
+    ssField("Cement parts",o.concreteMix?.cement||"",attr("concreteMix.cement"),"number")+
+    ssField("Sand parts",o.concreteMix?.sand||"",attr("concreteMix.sand"),"number")+
+    ssField("Gravel parts",o.concreteMix?.gravel||"",attr("concreteMix.gravel"),"number")+
+    ssField("Other parts",o.concreteMix?.other||"",attr("concreteMix.other"),"number")+
+    ssField("Verified dry mix yield factor",o.concreteMix?.yieldFactor||"",attr("concreteMix.yieldFactor"),"number")+
+    '</div></div>';
+  }
+  return html+'<div class="super-wall-result" data-ss-opening-output="'+i+'">'+
+    (r.error?safe(r.error):formatMeasure(r.count)+" openings · "+formatMeasure(r.openingArea)+" m² opening area · "+formatMeasure(r.lintelVolume)+" m³ in-situ lintel concrete")+
+   '</div></div>';
+ }).join(""):'<p class="sub-notice">No opening types added yet. Add a door or window type.</p>';
+ const update=()=>{superDraftChanged();types.forEach((o,i)=>{
+  const el=host.querySelector('[data-ss-opening-output="'+i+'"]');if(!el)return;
+  const r=ssOpeningTakeoff(o);el.textContent=r.error?r.error:formatMeasure(r.count)+" openings · "+formatMeasure(r.openingArea)+" m² opening area · "+formatMeasure(r.lintelVolume)+" m³ in-situ lintel concrete";
+ });};
+ host.querySelectorAll("[data-ss-opening]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+  const o=types[Number(el.dataset.ssOpening)],key=el.dataset.ssField;ssSetNested(o,key,el.value);
+  if(key==="lintel"||key==="rebar.method"){update();renderSuperOpeningTypes();}else update();
+ }));
+ host.querySelectorAll("[data-ss-opening-group]").forEach(el=>el.addEventListener("input",()=>{
+  types[Number(el.dataset.ssOpeningGroup)].groups[Number(el.dataset.ssGroup)][el.dataset.ssGroupKey]=el.value;update();
+ }));
+ host.querySelectorAll("[data-ss-add-opening-group]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssAddOpeningGroup)].groups.push({ref:"",width:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""});update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening-group]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssRemoveOpeningGroup)].groups.splice(Number(b.dataset.ssGroup),1);update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening]").forEach(b=>b.onclick=()=>{
+  types.splice(Number(b.dataset.ssRemoveOpening),1);update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-add-opening-bar]").forEach(b=>b.onclick=()=>{
+  const o=types[Number(b.dataset.ssAddOpeningBar)];o.rebar ||= {method:"schedule",bars:[]};o.rebar.bars ||= [];
+  o.rebar.bars.push({mark:"",diameter:"",cutLength:"",count:""});update();renderSuperOpeningTypes();
+ });
+ host.querySelectorAll("[data-ss-remove-opening-bar]").forEach(b=>b.onclick=()=>{
+  types[Number(b.dataset.ssRemoveOpeningBar)].rebar.bars.splice(Number(b.dataset.ssBar),1);update();renderSuperOpeningTypes();
+ });
+}
+
+/* Resource transfer v0.3: generated rows are replaced, manual rows retained.
+ * Stable material keys include floor, element and output type. Rates are retained
+ * only when both material name and unit are unchanged.
+ */
+function syncSuperstructureResources(){
+ if(!isSuperstructure())return;
+ const source="okike-superstructure-measured",old=activityData.materials||[];
+ const original=new Map(old.filter(r=>r.source===source).map(r=>[r.materialKey,r]));
+ const manual=old.filter(r=>r.source!==source),generated=[];
+ function add(key,name,quantity,unit){
+  if(!Number.isFinite(quantity)||quantity<0)return;
+  const prev=original.get(key);
+  generated.push({name,quantity:String(Number(quantity.toFixed(6))),unit,
+   arrangement:"Purchased",rate:prev?.name===name&&prev?.unit===unit?prev.rate||"":"",
+   source,materialKey:key,formulaStatus:"PRELIMINARY_GEOMETRIC_TAKEOFF"});
+ }
+ const records=activityData.details.superstructure||{};
+ for(const floor of getSuperConfig().floors){
+  const rec=records[floor.id];if(!rec)continue;
+  if(currentActivity==="Walls"){
+   for(const [i,w]of(rec.walls||[]).entries()){
+    const result=superWallQuantity(w);if(result.error)continue;
+    for(const [j,item]of result.materials.entries())
+     add(floor.id+":wall:"+(w.id||i)+":"+j,floor.label+" — "+item.name,item.quantity,item.unit);
+   }
+  }else if(currentActivity==="Door and window opening formation"){
+   for(const [i,o]of(rec.openingTypes||[]).entries()){
+    const r=ssOpeningTakeoff(o);if(r.error)continue;
+    for(const [j,item]of r.materials.entries())
+     add(floor.id+":opening:"+(o.id||i)+":"+j,floor.label+" — "+(o.reference||o.type)+" — "+item.name,item.quantity,item.unit);
+   }
+  }else if(["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(currentActivity)){
+   for(const [i,row]of(rec.items||[]).entries()){
+    const isTie=currentActivity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Wall tie / anchor";
+    if(isTie){
+     if(ssPositive(row.count))add(floor.id+":element:"+i+":tie",floor.label+" — "+(rec.specs?.material||"Wall ties"),Number(row.count),"ties");
+     continue;
+    }
+    const type=currentActivity==="Reinforced concrete stiffeners and wall ties"?"Reinforced concrete columns":currentActivity;
+    const materials=ssElementMaterials(type,row,rec.specs);
+    if(materials.error)continue;
+    for(const [j,item]of materials.materials.entries())
+     add(floor.id+":element:"+i+":"+j,floor.label+" — "+(row.ref||currentActivity)+" — "+item.name,item.quantity,item.unit);
+   }
+  }
+ }
+ activityData.materials=[...generated,...manual];
+}
+function validateSuperstructure(){
+ const cfg=getSuperConfig(),records=activityData.details.superstructure||{};
+ for(const floor of cfg.floors){
+  const rec=records[floor.id];if(!rec)continue;
+  if(currentActivity==="Walls"){
+   for(const wall of rec.walls||[]){
+    const r=superWallQuantity(wall);
+    if(r.error){showToast(floor.label+": "+r.error);return false;}
+   }
+  }else if(currentActivity==="Door and window opening formation"){
+   for(const opening of rec.openingTypes||[]){
+    const r=ssOpeningTakeoff(opening);
+    if(r.error){showToast(floor.label+": "+r.error);return false;}
+   }
+  }else{
+   for(const row of rec.items||[]){
+    const q=ssQuantityForRow(currentActivity,row);
+    if(q.error){showToast(floor.label+": "+q.error);return false;}
+    if(["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(currentActivity)&&row.elementType!=="Wall tie / anchor"){
+     const steel=ssRebarQuantity(row.rebar,Number(row.count));
+     if(steel.error){showToast(floor.label+": "+steel.error);return false;}
+    }
+   }
+  }
+ }
+ return true;
+}
+function superstructureReview(){
+ const records=activityData.details.superstructure||{};
+ const items=getSuperConfig().floors.map(f=>{
+  const rec=records[f.id];if(!rec)return '<p>'+safe(f.label)+': No details recorded.</p>';
+  let content="";
+  if(currentActivity==="Walls"){
+   content=(rec.walls||[]).map(w=>{
+    const r=superWallQuantity(w);return '<p>'+safe(w.type)+" ("+safe(w.position)+"): "+
+      (r.error?safe(r.error):formatMeasure(r.net)+" m², "+formatMeasure(r.quantity)+" "+safe(r.unit))+'</p>';
+   }).join("");
+  }else if(currentActivity==="Door and window opening formation"){
+   content=(rec.openingTypes||[]).map(o=>{
+    const r=ssOpeningTakeoff(o);return '<p>'+safe(o.reference||o.type)+": "+
+      (r.error?safe(r.error):formatMeasure(r.count)+" openings, "+formatMeasure(r.lintelVolume)+" m³ lintel concrete")+'</p>';
+   }).join("");
+  }else{
+   content=(rec.items||[]).map(row=>{
+    const r=ssQuantityForRow(currentActivity,row);return '<p>'+safe(row.ref||currentActivity)+": "+
+      (r.error?safe(r.error):formatMeasure(r.quantity)+" "+safe(r.unit)+(r.formwork!==undefined?" · "+formatMeasure(r.formwork)+" m² formwork":""))+'</p>';
+   }).join("");
+  }
+  return '<h4>'+safe(f.label)+'</h4>'+(content||"<p>No measurement groups recorded.</p>");
+ }).join("");
+ return '<div class="review-section"><h3>Superstructure scope and measurements, all floors</h3>'+items+
+ '<p class="sub-notice">Reference quantities only; site-specific reinforcement, overlap, manufacturing yield and commercial pricing need verification.</p></div>';
+}
+function cloneFloorSpec(original,full){
+ const source=JSON.parse(JSON.stringify(original||{}));
+ if(full){
+  source.walls=(source.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2)}));
+  source.openingTypes=(source.openingTypes||[]).map(o=>({...o,id:"opening-"+Math.random().toString(36).slice(2)}));
+  return source;
+ }
+ return {drawing:source.drawing||"",notes:"",generic:{spec:source.generic?.spec||""},
+  specs:source.specs?{...source.specs}:{},items:[],
+  walls:(source.walls||[]).map(w=>({...w,id:"wall-"+Math.random().toString(36).slice(2),segments:[]})),
+  openingTypes:(source.openingTypes||[]).map(o=>({...o,id:"opening-"+Math.random().toString(36).slice(2),groups:[]}))};
+}
+
 renderStages();
 showView(stageView);
