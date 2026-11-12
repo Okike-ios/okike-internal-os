@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Superstructure Branch Preview | OKIKE</title>
-  <link rel="stylesheet" href="work-details.css">
+  <link rel="stylesheet" href="work-details.css?v=3">
   <link rel="stylesheet" href="../../OKIKE-IOS-Quotation-v04/okike-shared.css">
 </head>
 
@@ -24,6 +24,7 @@
       </div>
 
       <div class="topbar-right">
+        <button type="button" id="previewThemeToggle" class="preview-theme-toggle" aria-label="Toggle preview theme">☀ Light mode</button>
         <div class="save-status">
           <span class="status-dot"></span>
           <span id="saveStatus">Draft restored</span>
@@ -209,7 +210,31 @@
   }catch(e){console.error("Unable to initialize Superstructure preview:",e);}
 })();
 </script>
-<script src="work-details.js?v=ss02"></script>
+<script src="work-details.js?v=ss03"></script>
 <script src="../../OKIKE-IOS-Quotation-v04/Quotation-new build/okike-shared.js"></script>
+<script>
+(function(){
+  // Preview-only override: do not modify OKIKE-wide display preferences.
+  const key="okike_superstructure_preview_theme_v02";
+  const button=document.getElementById("previewThemeToggle");
+  function apply(){
+    const stored=localStorage.getItem(key);
+    const theme=stored==="dark"?"dark":"light";
+    document.body.dataset.theme=theme;
+    if(button){
+      button.textContent=theme==="dark"?"☀ Switch to light":"☾ Switch to dark";
+      button.setAttribute("aria-pressed",String(theme==="dark"));
+    }
+  }
+  button?.addEventListener("click",()=>{
+    const next=document.body.dataset.theme==="dark"?"light":"dark";
+    try{localStorage.setItem(key,next);}catch(e){}
+    apply();
+  });
+  // Shared script can refresh the application-wide preference on window focus.
+  window.addEventListener("focus",()=>setTimeout(apply,0));
+  apply();
+})();
+</script>
 </body>
 </html>
