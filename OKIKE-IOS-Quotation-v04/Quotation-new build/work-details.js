@@ -3054,7 +3054,25 @@ function syncSuperstructureResources(){
  const prices=new Map(old.filter(r=>r.source===source).map(r=>[r.materialKey,r]));
  const manual=old.filter(r=>r.source!==source),generated=[];
  const floors=activityData.details.superstructure||{};
- if(currentActivity==="Walls"){
+ if(currentActivity!=="Walls"){
+  for(const floor of getSuperConfig().floors){
+   const d=floors[floor.id];if(!d)continue;
+   const total=superActivityTotal(currentActivity,d.items||[]);
+   if(!total)continue;
+   const items=[];
+   if(["Reinforced concrete columns","Reinforced concrete beams"].includes(currentActivity))
+    items.push({name:"Concrete — "+currentActivity+" ("+(d.specs?.grade||"grade unspecified")+")",quantity:total.quantity,unit:"m³"});
+   if(currentActivity==="Door and window opening formation"&&total.lintelVolume>0&&d.specs?.lintel==="In-situ reinforced concrete lintel")
+    items.push({name:"In-situ lintel concrete",quantity:total.lintelVolume,unit:"m³"});
+   for(const [i,item] of items.entries()){
+    const key=floor.id+":"+currentActivity+":"+i,oldItem=prices.get(key),name=floor.label+" — "+item.name;
+    generated.push({name,quantity:String(Number(item.quantity.toFixed(6))),unit:item.unit,
+      arrangement:"Purchased",rate:oldItem?.name===name&&oldItem?.unit===item.unit?oldItem.rate||"":"",
+      source,materialKey:key});
+   }
+  }
+ }
+  if(currentActivity==="Walls"){
   for(const floor of getSuperConfig().floors){
    const data=floors[floor.id];if(!data)continue;
    for(const wall of data.walls||[]){
@@ -3261,7 +3279,7 @@ const SUPER_ACTIVITY_FIELDS={
  },
  "Door and window opening formation":{
   intro:"Record all openings and their lintel requirements within one activity. Wall area deductions remain in Walls; do not deduct openings twice.",
-  columns:[["ref","Opening mark / location","text"],["width","Opening width (m)","number"],["height","Opening height (m)","number"],["count","Number of openings","number"],["lintelLength","Lintel overall length (m, if required)","number"]],
+  columns:[["ref","Opening mark / location","text"],["width","Opening width (m)","number"],["height","Opening height (m)","number"],["count","Number of openings","number"],["lintelLength","Lintel overall length (m, if required)","number"],["lintelWidth","Lintel width (mm, optional)","number"],["lintelDepth","Lintel depth (mm, optional)","number"]],
   specs:[["drawing","Openings / elevations drawing reference","text"],["openingType","Opening type","select",["Door","Window","Vent / service opening","Mixed / specify per row"]],["lintel","Lintel requirement","select",["Not required / engineer to confirm","Precast concrete lintel","In-situ reinforced concrete lintel","Steel lintel","Other"]],["lintelSection","Lintel section / reinforcement / bearing notes","text"],["finish","Reveal / jamb / sill formation notes","text"]],
   calc:"openings",unit:"openings",note:"Counts openings and optional total specified lintel run. Lintel concrete, steel, bearing and reinforcement are not inferred from opening width."
  },
@@ -3291,7 +3309,7 @@ const SUPER_ACTIVITY_FIELDS={
  }
 };
 function newSuperWorkRow(){
- return {ref:"",length:"",width:"",depth:"",height:"",count:"1",lintelLength:""};
+ return {ref:"",length:"",width:"",depth:"",height:"",count:"1",lintelLength:"",lintelWidth:"",lintelDepth:""};
 }
 function superActivityQuantity(name,row){
  const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return {error:"Activity not configured"};
@@ -3314,14 +3332,20 @@ function superActivityQuantity(name,row){
    secondary=Number(lintel)*v("count");
   }
  }else quantity=v("count");
- return {quantity,unit:def.unit,secondary};
+ const lintelWidth=String(row.lintelWidth??"").trim(),lintelDepth=String(row.lintelDepth??"").trim();
+ let lintelVolume=null;
+ if(def.calc==="openings"&&(lintelWidth||lintelDepth)){
+  if(!secondary||!(Number(lintelWidth)>0)||!(Number(lintelDepth)>0))return {error:"Enter a lintel length, width and depth together for concrete volume."};
+  lintelVolume=secondary*Number(lintelWidth)/1000*Number(lintelDepth)/1000;
+ }
+ return {quantity,unit:def.unit,secondary,lintelVolume};
 }
 function superActivityTotal(name,rows){
  const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return null;
  const entries=rows.map(r=>superActivityQuantity(name,r));
  if(!entries.length||entries.some(e=>e.error))return null;
  return {quantity:entries.reduce((t,e)=>t+e.quantity,0),unit:def.unit,
-  secondary:entries.reduce((t,e)=>t+(e.secondary||0),0)};
+  secondary:entries.reduce((t,e)=>t+(e.secondary||0),0),lintelVolume:entries.reduce((t,e)=>t+(e.lintelVolume||0),0)};
 }
 function renderSuperstructureActivityDetails(header,rec){
  const def=SUPER_ACTIVITY_FIELDS[currentActivity];
@@ -3358,7 +3382,8 @@ function renderSuperWorkRows(){
     superInput(label,row[key]??"", 'data-super-row="'+index+'" data-super-key="'+safe(key)+'"',type)
    ).join("")+'</div><div class="super-row-quantity" data-super-row-output="'+index+'">'+
    (res.error?safe(res.error):formatMeasure(res.quantity)+" "+safe(res.unit)+
-    (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":""))+'</div></div>';
+    (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"")+
+    (res.lintelVolume!==null?" · Gross lintel concrete: "+formatMeasure(res.lintelVolume)+" m³":""))+'</div></div>';
  }).join(""):'<p class="sub-notice">No measurement rows added yet. Add a row for each grid line, element type or distinct dimension.</p>';
  host.querySelectorAll("[data-super-row]").forEach(el=>el.addEventListener("input",()=>{
   rec.items[Number(el.dataset.superRow)][el.dataset.superKey]=el.value;
@@ -3375,11 +3400,13 @@ function renderSuperWorkTotal(){
   const el=stepContent.querySelector('[data-super-row-output="'+i+'"]');if(!el)return;
   const res=superActivityQuantity(currentActivity,row);
   el.textContent=res.error?res.error:formatMeasure(res.quantity)+" "+res.unit+
-   (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"");
+   (res.secondary!==null?" · Lintel runs: "+formatMeasure(res.secondary)+" m":"")+
+   (res.lintelVolume!==null?" · Gross lintel concrete: "+formatMeasure(res.lintelVolume)+" m³":"");
  });
  const out=stepContent.querySelector("#superDetailedTotal");
  if(out)out.textContent=total?formatMeasure(total.quantity)+" "+total.unit+
-  (total.secondary?" · Specified lintel runs: "+formatMeasure(total.secondary)+" m":""):"—";
+  (total.secondary?" · Specified lintel runs: "+formatMeasure(total.secondary)+" m":"")+
+  (total.lintelVolume?" · Gross lintel concrete: "+formatMeasure(total.lintelVolume)+" m³":""):"—";
 }
 
 renderStages();
