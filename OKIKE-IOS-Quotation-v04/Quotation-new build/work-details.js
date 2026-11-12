@@ -3661,7 +3661,14 @@ function renderSuperWorkTotal(){
   }
  });
  const out=stepContent.querySelector("#superDetailedTotal");
- if(out)out.textContent=valid===rows.length&&rows.length?formatMeasure(total)+" "+(name==="Door and window opening formation"?"openings":name==="Superstructure inspection and quality testing"?"tests":["Reinforced concrete columns","Reinforced concrete beams"].includes(name)?"m³":SUPER_ACTIVITY_FIELDS[name].unit)+(forms?" · Formwork "+formatMeasure(forms)+" m²":""):"— (complete measurement rows)";
+ if(out){
+  if(valid!==rows.length||!rows.length)out.textContent="— (complete measurement rows)";
+  else if(name==="Reinforced concrete stiffeners and wall ties"){
+    const ties=rows.filter(r=>r.elementType==="Wall tie / anchor").reduce((t,r)=>t+Number(r.count||0),0);
+    const volume=rows.filter(r=>r.elementType!=="Wall tie / anchor").reduce((t,r)=>t+(ssQuantityForRow(name,r).quantity||0),0);
+    out.textContent=formatMeasure(volume)+" m³ stiffeners · "+formatMeasure(ties)+" ties"+(forms?" · "+formatMeasure(forms)+" m² formwork":"");
+  }else out.textContent=formatMeasure(total)+" "+(name==="Superstructure inspection and quality testing"?"tests":["Reinforced concrete columns","Reinforced concrete beams"].includes(name)?"m³":SUPER_ACTIVITY_FIELDS[name].unit)+(forms?" · Formwork "+formatMeasure(forms)+" m²":"");
+ }
 }
 
 /* Approved mortar and block-production methods, physically traceable takeoff. */
@@ -3944,6 +3951,32 @@ function validateSuperstructure(){
   }
  }
  return true;
+}
+function superstructureReview(){
+ const records=activityData.details.superstructure||{};
+ const items=getSuperConfig().floors.map(f=>{
+  const rec=records[f.id];if(!rec)return '<p>'+safe(f.label)+': No details recorded.</p>';
+  let content="";
+  if(currentActivity==="Walls"){
+   content=(rec.walls||[]).map(w=>{
+    const r=superWallQuantity(w);return '<p>'+safe(w.type)+" ("+safe(w.position)+"): "+
+      (r.error?safe(r.error):formatMeasure(r.net)+" m², "+formatMeasure(r.quantity)+" "+safe(r.unit))+'</p>';
+   }).join("");
+  }else if(currentActivity==="Door and window opening formation"){
+   content=(rec.openingTypes||[]).map(o=>{
+    const r=ssOpeningTakeoff(o);return '<p>'+safe(o.reference||o.type)+": "+
+      (r.error?safe(r.error):formatMeasure(r.count)+" openings, "+formatMeasure(r.lintelVolume)+" m³ lintel concrete")+'</p>';
+   }).join("");
+  }else{
+   content=(rec.items||[]).map(row=>{
+    const r=ssQuantityForRow(currentActivity,row);return '<p>'+safe(row.ref||currentActivity)+": "+
+      (r.error?safe(r.error):formatMeasure(r.quantity)+" "+safe(r.unit)+(r.formwork!==undefined?" · "+formatMeasure(r.formwork)+" m² formwork":""))+'</p>';
+   }).join("");
+  }
+  return '<h4>'+safe(f.label)+'</h4>'+(content||"<p>No measurement groups recorded.</p>");
+ }).join("");
+ return '<div class="review-section"><h3>Superstructure scope and measurements, all floors</h3>'+items+
+ '<p class="sub-notice">Reference quantities only; site-specific reinforcement, overlap, manufacturing yield and commercial pricing need verification.</p></div>';
 }
 function cloneFloorSpec(original,full){
  const source=JSON.parse(JSON.stringify(original||{}));
