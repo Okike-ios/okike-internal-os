@@ -3527,5 +3527,121 @@ function ssMixMarkup(row,index){
  '</div><p class="sub-notice">No default conversion factor or density is assumed. Component volumes require verified project data.</p></div>';
 }
 
+/* Dynamic element form. This intentionally supersedes the earlier generic measurement renderer. */
+function ssShapeColumns(name,row){
+ const def=SUPER_ACTIVITY_FIELDS[name];if(!def)return [];
+ if(name==="Reinforced concrete columns"){
+  const cols=[["ref","Column mark / grid","text"],["shape","Column section","select",["Rectangular","Square","Circular"]]];
+  if(row.shape==="Circular")cols.push(["diameter","Diameter (mm)","number"]);
+  else if(row.shape==="Square")cols.push(["width","Side width (mm)","number"]);
+  else cols.push(["width","Width (mm)","number"],["depth","Breadth (mm)","number"]);
+  return [...cols,["height","Column height (m)","number"],["count","Number of columns","number"]];
+ }
+ if(name==="Reinforced concrete beams")return [
+  ["ref","Beam mark / grid","text"],["width","Beam width (mm)","number"],
+  ["depth","Beam overall depth (mm)","number"],["length","Beam span (m)","number"],
+  ["count","Number of beams","number"]];
+ if(name==="Reinforced concrete stiffeners and wall ties"){
+  const columns=[["ref","Element mark / grid","text"],["elementType","Element type","select",["Concrete stiffener","Wall tie / anchor"]]];
+  if(row.elementType!=="Wall tie / anchor")columns.push(
+   ["width","Stiffener width (mm)","number"],["depth","Stiffener breadth (mm)","number"],["height","Stiffener height (m)","number"]);
+  return [...columns,["count","Number of elements","number"]];
+ }
+ return def.columns;
+}
+function ssQuantityForRow(activity,row){
+ if(activity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Wall tie / anchor"){
+  if(!ssPositive(row.count)||!Number.isInteger(Number(row.count)))return {error:"Enter number of specified wall ties."};
+  return {quantity:Number(row.count),unit:"ties",formwork:0};
+ }
+ if(activity==="Reinforced concrete columns"||activity==="Reinforced concrete beams"||
+ (activity==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Concrete stiffener")){
+  const adjusted={...row};
+  if(row.shape==="Square")adjusted.depth=row.width;
+  return ssElementQuantity(activity==="Reinforced concrete stiffeners and wall ties"?"Reinforced concrete columns":activity,adjusted);
+ }
+ return superActivityQuantity(activity,row);
+}
+function ssDetailedRowMarkup(name,row,index){
+ const cols=ssShapeColumns(name,row);
+ const at=k=>'data-super-row="'+index+'" data-super-key="'+k+'"';
+ let html='<div class="super-detail-grid">'+cols.map(([key,label,type,opts])=>
+  type==="select"?ssChoice(label,row[key]||opts[0],opts,at(key)):ssField(label,row[key]??"",at(key),type)
+ ).join("")+'</div>';
+ const concrete=["Reinforced concrete columns","Reinforced concrete beams"].includes(name)||
+  (name==="Reinforced concrete stiffeners and wall ties"&&row.elementType==="Concrete stiffener");
+ if(concrete){
+  if(name==="Reinforced concrete columns"&&row.shape!=="Circular")html+='<div class="super-resource-subpanel"><h4>Shuttered column faces</h4><div class="super-checkbox-row">'+
+    ["front","back","left","right"].map(face=>'<label><input type="checkbox" data-ss-face="'+index+'" data-face="'+face+'" '+(!row.faces||row.faces.includes(face)?"checked":"")+'>'+face+'</label>').join("")+'</div></div>';
+  html+=ssFormworkMarkup(row,index,name==="Reinforced concrete beams"?name:"Reinforced concrete columns")+
+    ssRebarMarkup(row,index)+ssMixMarkup(row,index);
+ }
+ return html;
+}
+function renderSuperWorkRows(){
+ const name=currentActivity,def=SUPER_ACTIVITY_FIELDS[name],rec=superFloorDetails(getSuperConfig().active);
+ const host=stepContent.querySelector("#superWorkRows");if(!def||!host)return;
+ rec.items ||= [];
+ host.innerHTML=rec.items.length?rec.items.map((row,index)=>{
+  const result=ssQuantityForRow(name,row);
+  const actual=result.error?safe(result.error):formatMeasure(result.quantity)+" "+safe(result.unit)+
+  (result.formwork!==undefined?" · Formwork "+formatMeasure(result.formwork)+" m²":"");
+  return '<section class="super-measurement"><div class="super-row-head"><strong>Measurement '+(index+1)+'</strong>'+
+   '<button class="secondary-button" type="button" data-super-delete-row="'+index+'">Remove</button></div>'+
+   ssDetailedRowMarkup(name,row,index)+
+   '<div class="super-row-quantity" data-super-row-output="'+index+'">'+actual+'</div></section>';
+ }).join(""):'<p class="sub-notice">Add one measurement group per distinct structural section, grid reference or element specification.</p>';
+ host.querySelectorAll("[data-super-row]").forEach(el=>{
+  el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+   const idx=Number(el.dataset.superRow),key=el.dataset.superKey,row=rec.items[idx];
+   ssSetNested(row,key,el.value);
+   if(key==="shape"||key==="elementType"||key==="rebar.method"){superDraftChanged();renderSuperWorkRows();return;}
+   superDraftChanged();renderSuperWorkTotal();
+  });
+ });
+ host.querySelectorAll("[data-ss-face]").forEach(el=>el.addEventListener("change",()=>{
+  const row=rec.items[Number(el.dataset.ssFace)];
+  const faces=["front","back","left","right"];
+  row.faces=faces.filter(face=>{
+   const input=Array.from(host.querySelectorAll("[data-ss-face]")).find(x=>Number(x.dataset.ssFace)===Number(el.dataset.ssFace)&&x.dataset.face===face);
+   return input?.checked;
+  });
+  superDraftChanged();renderSuperWorkTotal();
+ }));
+ host.querySelectorAll("[data-ss-add-bar]").forEach(b=>b.onclick=()=>{
+  const row=rec.items[Number(b.dataset.ssAddBar)];
+  row.rebar ||= {method:"schedule",bars:[]};row.rebar.bars ||= [];
+  row.rebar.bars.push({mark:"",diameter:"",cutLength:"",count:""});
+  superDraftChanged();renderSuperWorkRows();
+ });
+ host.querySelectorAll("[data-ss-remove-bar]").forEach(b=>b.onclick=()=>{
+  rec.items[Number(b.dataset.ssRemoveBar)].rebar?.bars?.splice(Number(b.dataset.ssBarIndex),1);
+  superDraftChanged();renderSuperWorkRows();
+ });
+ host.querySelectorAll("[data-super-delete-row]").forEach(b=>b.onclick=()=>{
+  rec.items.splice(Number(b.dataset.superDeleteRow),1);superDraftChanged();renderSuperWorkRows();
+ });
+ renderSuperWorkTotal();
+}
+function renderSuperWorkTotal(){
+ const rec=superFloorDetails(getSuperConfig().active),rows=rec.items||[],name=currentActivity;
+ let total=0,forms=0,valid=0;
+ rows.forEach((row,i)=>{
+  const r=ssQuantityForRow(name,row),el=stepContent.querySelector('[data-super-row-output="'+i+'"]');
+  if(!r.error){total+=r.quantity;forms+=r.formwork||0;valid++;}
+  if(el){
+    let text=r.error?r.error:formatMeasure(r.quantity)+" "+r.unit+(r.formwork!==undefined?" · Formwork "+formatMeasure(r.formwork)+" m²":"");
+    if(!r.error&&["Reinforced concrete columns","Reinforced concrete beams","Reinforced concrete stiffeners and wall ties"].includes(name)&&row.elementType!=="Wall tie / anchor"){
+      const steel=ssRebarQuantity(row.rebar,Number(row.count));
+      if(steel.error)text+=" · "+steel.error;
+      else if(steel.materials.length)text+=" · Rebar "+formatMeasure(steel.materials.reduce((v,m)=>v+m.quantity,0))+" kg";
+    }
+    el.textContent=text;
+  }
+ });
+ const out=stepContent.querySelector("#superDetailedTotal");
+ if(out)out.textContent=valid===rows.length&&rows.length?formatMeasure(total)+" "+(name==="Door and window opening formation"?"openings":name==="Superstructure inspection and quality testing"?"tests":["Reinforced concrete columns","Reinforced concrete beams"].includes(name)?"m³":SUPER_ACTIVITY_FIELDS[name].unit)+(forms?" · Formwork "+formatMeasure(forms)+" m²":""):"— (complete measurement rows)";
+}
+
 renderStages();
 showView(stageView);
