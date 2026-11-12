@@ -3410,5 +3410,122 @@ function renderSuperWorkTotal(){
   (total.lintelVolume?" · Gross lintel concrete: "+formatMeasure(total.lintelVolume)+" m³":""):"—";
 }
 
+/* OK-SS-002: Geometry and explicit resource calculations; no undocumented wastage or yield. */
+const SS_BAR_DIAMETERS=["8","10","12","16","20","25","32"];
+const ssPositive=v=>String(v??"").trim()!==""&&Number.isFinite(Number(v))&&Number(v)>0;
+function ssSteelKg(length,diameter){return Number(length)*0.006165*Number(diameter)**2;}
+function ssElementQuantity(activity,row){
+ const n=Number(row.count);if(!ssPositive(row.count)||!Number.isInteger(n))return {error:"Specify a whole-number element count."};
+ const h=Number(row.height),l=Number(row.length),w=Number(row.width)/1000,d=Number(row.depth)/1000;
+ if(activity==="Reinforced concrete columns"&&row.shape==="Circular"){
+  const dia=Number(row.diameter)/1000;if(!(dia>0&&h>0))return {error:"Enter circular diameter (mm) and column height (m)."};
+  return {quantity:Math.PI*dia*dia/4*h*n,formwork:Math.PI*dia*h*n,unit:"m³"};
+ }
+ const run=activity==="Reinforced concrete beams"?l:h;
+ if(!(w>0&&d>0&&run>0))return {error:"Complete section dimensions and height/span."};
+ let area;
+ if(activity==="Reinforced concrete beams"){
+  area=((row.soffit==="false"?0:w)+(row.leftSide==="false"?0:d)+(row.rightSide==="false"?0:d))*run*n;
+ }else{
+  const faces=Array.isArray(row.faces)?row.faces:["front","back","left","right"];
+  area=faces.reduce((a,k)=>a+({front:w,back:w,left:d,right:d}[k]||0),0)*run*n;
+ }
+ return {quantity:w*d*run*n,formwork:area,unit:"m³"};
+}
+function ssRebarQuantity(r,n=1){
+ if(!r||r.method==="none"||!r.method)return {materials:[]};
+ const out=[];
+ if(r.method==="schedule"){
+  if(!r.bars?.length)return {error:"Add a bar schedule row.",materials:[]};
+  for(const b of r.bars){
+   if(!ssPositive(b.diameter)||!ssPositive(b.cutLength)||!ssPositive(b.count))return {error:"Complete scheduled bar diameter, cut length and count.",materials:[]};
+   out.push({name:"Scheduled rebar "+b.diameter+"mm"+(b.mark?" — "+b.mark:""),quantity:ssSteelKg(b.cutLength*Number(b.count)*n,b.diameter),unit:"kg"});
+  }
+ }else if(r.method==="guided"){
+  if(!ssPositive(r.mainDiameter)||!ssPositive(r.mainBars)||!ssPositive(r.mainCutLength))return {error:"Specify main bar diameter, count and cut length.",materials:[]};
+  out.push({name:"Main reinforcement "+r.mainDiameter+" mm",quantity:ssSteelKg(r.mainCutLength*Number(r.mainBars)*n,r.mainDiameter),unit:"kg"});
+  if(r.linkDiameter||r.linkSpacing||r.linkCutLength||r.elementLength){
+   if(![r.linkDiameter,r.linkSpacing,r.linkCutLength,r.elementLength].every(ssPositive))return {error:"Complete link diameter, spacing, member length and scheduled link cut length.",materials:[]};
+   const count=Math.ceil(Number(r.elementLength)*1000/Number(r.linkSpacing))+1;
+   out.push({name:"Links "+r.linkDiameter+" mm",quantity:ssSteelKg(count*Number(r.linkCutLength)*n,r.linkDiameter),unit:"kg"});
+  }
+ }else return {error:"Invalid reinforcement method.",materials:[]};
+ return {materials:out};
+}
+function ssMixComponents(volume,mix,purpose){
+ if(!mix||mix.type!=="site"||!ssPositive(mix.yieldFactor))return [];
+ const parts=[["Cement",mix.cement],["Sand",mix.sand],["Gravel",mix.gravel],["Other",mix.other]].filter(([_,v])=>ssPositive(v));
+ const sum=parts.reduce((t,[_,v])=>t+Number(v),0);
+ return sum>0?parts.map(([name,v])=>({name:purpose+" — "+name,quantity:volume*Number(mix.yieldFactor)*Number(v)/sum,unit:"m³ dry component"})):[];
+}
+function ssElementMaterials(activity,row,specs){
+ const base=ssElementQuantity(activity,row);if(base.error)return {...base,materials:[]};
+ const result=[{name:"Concrete "+(specs?.grade||"grade unspecified"),quantity:base.quantity,unit:"m³"}];
+ if(base.formwork>0){
+  result.push({name:"Formwork contact area",quantity:base.formwork,unit:"m²"});
+  const fw=row.formwork||{},size=Number(fw.panelWidth)*Number(fw.panelLength);
+  if(fw.system&&fw.system!=="Area only"&&size>0){
+   const reuse=ssPositive(fw.reuses)?Number(fw.reuses):1;
+   result.push({name:fw.system+" panels (theoretical)",quantity:Math.ceil(base.formwork/(size*reuse)),unit:"panels"});
+  }
+ }
+ const rebar=ssRebarQuantity(row.rebar,Number(row.count));if(rebar.error)return {error:rebar.error,materials:result};
+ result.push(...rebar.materials);
+ if(specs?.method==="Site-mixed")result.push(...ssMixComponents(base.quantity,row.concreteMix,"Concrete mix"));
+ return {...base,materials:result};
+}
+function ssField(label,value,attr,type="text"){return superInput(label,value,attr,type);}
+function ssChoice(label,value,values,attr){return superSelect(label,value,values,attr);}
+function ssSetNested(obj,path,val){
+ const keys=path.split(".");let node=obj;
+ for(let i=0;i<keys.length-1;i++){const k=keys[i];node[k] ||= /^\d+$/.test(keys[i+1])?[]:{};node=node[k];}
+ node[keys.at(-1)]=val;
+}
+function ssRebarMarkup(row,index){
+ const r=row.rebar||{},at=k=>'data-super-row="'+index+'" data-super-key="rebar.'+k+'"';
+ let html='<div class="super-resource-subpanel"><h4>Reinforcement schedule</h4>'+
+ ssChoice("Method",r.method||"none",["none","schedule","guided"],at("method"));
+ if(r.method==="guided")html+='<div class="super-detail-grid">'+
+ ssChoice("Main bar diameter (mm)",r.mainDiameter||"",["",...SS_BAR_DIAMETERS],at("mainDiameter"))+
+ ssField("Main bars per element",r.mainBars||"",at("mainBars"),"number")+
+ ssField("Main bar scheduled cut length (m)",r.mainCutLength||"",at("mainCutLength"),"number")+
+ ssChoice("Link diameter (mm)",r.linkDiameter||"",["",...SS_BAR_DIAMETERS],at("linkDiameter"))+
+ ssField("Link spacing (mm)",r.linkSpacing||"",at("linkSpacing"),"number")+
+ ssField("Linked member length (m)",r.elementLength||"",at("elementLength"),"number")+
+ ssField("Link cut length (m)",r.linkCutLength||"",at("linkCutLength"),"number")+'</div>';
+ if(r.method==="schedule")html+=(r.bars||[]).map((b,j)=>'<div class="super-schedule-row"><div class="super-detail-grid">'+
+ ssField("Bar mark",b.mark||"",at("bars."+j+".mark"))+
+ ssChoice("Diameter (mm)",b.diameter||"",["",...SS_BAR_DIAMETERS],at("bars."+j+".diameter"))+
+ ssField("Cut length (m)",b.cutLength||"",at("bars."+j+".cutLength"),"number")+
+ ssField("Bars per element",b.count||"",at("bars."+j+".count"),"number")+
+ '</div><button class="secondary-button" type="button" data-ss-remove-bar="'+index+'" data-ss-bar-index="'+j+'">Remove mark</button></div>').join("")+
+ '<button class="secondary-button" type="button" data-ss-add-bar="'+index+'">+ Add bar mark</button>';
+ return html+'</div>';
+}
+function ssFormworkMarkup(row,index,activity){
+ const fw=row.formwork||{},at=k=>'data-super-row="'+index+'" data-super-key="formwork.'+k+'"';
+ let html='<div class="super-resource-subpanel"><h4>Formwork / shuttering</h4><div class="super-detail-grid">'+
+ ssChoice("Formwork system",fw.system||"Area only",["Area only","Timber / plywood","Steel panel","Proprietary panel","Other"],at("system"))+
+ ssField("Usable panel width (m)",fw.panelWidth||"",at("panelWidth"),"number")+
+ ssField("Usable panel height (m)",fw.panelLength||"",at("panelLength"),"number")+
+ ssField("Validated reuse cycles",fw.reuses||"",at("reuses"),"number");
+ if(activity==="Reinforced concrete beams")html+=
+ ssChoice("Soffit shuttered?",row.soffit||"true",["true","false"],'data-super-row="'+index+'" data-super-key="soffit"')+
+ ssChoice("Left side shuttered?",row.leftSide||"true",["true","false"],'data-super-row="'+index+'" data-super-key="leftSide"')+
+ ssChoice("Right side shuttered?",row.rightSide||"true",["true","false"],'data-super-row="'+index+'" data-super-key="rightSide"');
+ return html+'</div><p class="sub-notice">Geometrical contact area; panel counts are theoretical and exclude props, ties and cutting losses.</p></div>';
+}
+function ssMixMarkup(row,index){
+ const mix=row.concreteMix||{},at=k=>'data-super-row="'+index+'" data-super-key="concreteMix.'+k+'"';
+ return '<div class="super-resource-subpanel"><h4>Site-mixed concrete components</h4><div class="super-detail-grid">'+
+ ssChoice("Supply method",mix.type||"ready",["ready","site"],at("type"))+
+ ssField("Cement parts",mix.cement||"",at("cement"),"number")+
+ ssField("Sand parts",mix.sand||"",at("sand"),"number")+
+ ssField("Gravel parts",mix.gravel||"",at("gravel"),"number")+
+ ssField("Other parts",mix.other||"",at("other"),"number")+
+ ssField("Verified dry yield factor",mix.yieldFactor||"",at("yieldFactor"),"number")+
+ '</div><p class="sub-notice">No default conversion factor or density is assumed. Component volumes require verified project data.</p></div>';
+}
+
 renderStages();
 showView(stageView);
